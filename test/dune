@@ -1,0 +1,4 @@
+(library (name hardcaml_step_testbench_test)
+ (libraries expect_test_helpers_core hardcaml_waveterm
+  hardcaml_step_testbench)
+ (preprocess (pps ppx_deriving_hardcaml ppx_jane)))
