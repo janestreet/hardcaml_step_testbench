@@ -1,4 +1,5 @@
 open! Import
+open Hardcaml_waveterm
 
 module Source = struct
   type 'a t =
