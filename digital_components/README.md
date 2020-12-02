@@ -1,3 +1,6 @@
+---
+uuid: 315fa5d3-8edc-313c-83a3-b23e057abfb7
+---
 `Digital_components` is a library aimed at specifying and modeling
 hardware.  The main idea is to explicitly model a single step of
 computation, corresponding to a "clock cycle".  There is a shared
