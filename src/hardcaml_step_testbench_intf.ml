@@ -64,6 +64,13 @@ module type S = sig
   (** Wait for the given event to occur, and extract its return value. *)
   val wait_for : ('a, 'b) finished_event -> 'a t
 
+  (** Like [wait_for] except it stops waiting after [timeout_in_cycles] and returns
+      [None]. Note that the spawned task continues to execute. *)
+  val wait_for_with_timeout
+    :  ('a, 'b) finished_event
+    -> timeout_in_cycles:int
+    -> 'a option t
+
   (** Call [run ~input_default:input_hold] to hold inputs their previous value if they are
       unset by tasks in the testbench. *)
   val input_hold : Bits.t I.t

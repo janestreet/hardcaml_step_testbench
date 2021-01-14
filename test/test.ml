@@ -315,3 +315,31 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
     │               ││                                                   │
     └───────────────┘└───────────────────────────────────────────────────┘ |}]
 ;;
+
+let%expect_test "Timeout works as expected" =
+  let module Simulator = Cyclesim.With_interface (I) (O) in
+  let simulator = Simulator.create make_circuit in
+  let open! Tb.Let_syntax in
+  let testbench ~timeout_in_cycles _ =
+    let%bind send_finished =
+      Tb.spawn (fun _ ->
+        let%bind _ = Tb.cycle ~num_cycles:1 Tb.input_hold in
+        return `Finished)
+    in
+    let%bind result = Tb.wait_for_with_timeout ~timeout_in_cycles send_finished in
+    print_s ([%sexp_of: [ `Finished ] option] result);
+    return ()
+  in
+  let test ~timeout_in_cycles =
+    let testbench = testbench ~timeout_in_cycles in
+    Tb.run_until_finished () ~simulator ~testbench
+  in
+  test ~timeout_in_cycles:1;
+  [%expect {| () |}];
+  test ~timeout_in_cycles:2;
+  [%expect {| (Finished) |}];
+  test ~timeout_in_cycles:3;
+  [%expect {| (Finished) |}];
+  test ~timeout_in_cycles:4;
+  [%expect {| (Finished) |}]
+;;

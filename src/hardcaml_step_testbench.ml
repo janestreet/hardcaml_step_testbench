@@ -94,6 +94,19 @@ module Make (I : Interface.S) (O : Interface.S) = struct
   let input_hold = I.map I.t ~f:(fun _ -> Bits.empty)
   let input_zero = I.map I.t ~f:(fun (_, b) -> Bits.zero b)
 
+  let rec wait_for_with_timeout (event : _ finished_event) ~timeout_in_cycles =
+    if timeout_in_cycles < 0
+    then raise_s [%message "timeout_in_cycles < 0" (timeout_in_cycles : int)];
+    match Step_monad.Event.value event with
+    | Some x -> return (Some x.result)
+    | None ->
+      if timeout_in_cycles = 0
+      then return None
+      else (
+        let%bind _ = cycle input_hold in
+        wait_for_with_timeout event ~timeout_in_cycles:(timeout_in_cycles - 1))
+  ;;
+
   let simulator_output simulator =
     let output clock_edge = O.map (Cyclesim.outputs ~clock_edge simulator) ~f:( ! ) in
     Before_and_after_edge.create ~before_edge:(output Before) ~after_edge:(output After)
