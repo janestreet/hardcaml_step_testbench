@@ -288,7 +288,7 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
       return ()
     in
     Tb.run_until_finished () ~simulator ~testbench;
-    Waveform.print ~display_height:9 waves
+    Waveform.expect ~display_height:9 waves
   in
   test true;
   [%expect
@@ -301,7 +301,8 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
     │q              ││ FF     │00             │01     │FF     │00        │
     │               ││────────┴───────────────┴───────┴───────┴──────────│
     │               ││                                                   │
-    └───────────────┘└───────────────────────────────────────────────────┘ |}];
+    └───────────────┘└───────────────────────────────────────────────────┘
+    ea145f8725760bebef5a25a217e174f7 |}];
   test false;
   [%expect
     {|
@@ -313,7 +314,8 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
     │q              ││ FF     │00             │01     │FF     │00        │
     │               ││────────┴───────────────┴───────┴───────┴──────────│
     │               ││                                                   │
-    └───────────────┘└───────────────────────────────────────────────────┘ |}]
+    └───────────────┘└───────────────────────────────────────────────────┘
+    ea145f8725760bebef5a25a217e174f7 |}]
 ;;
 
 let%expect_test "Timeout works as expected" =
