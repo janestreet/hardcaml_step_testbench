@@ -180,7 +180,12 @@ module Runner = struct
 
   let create ~start ~output = { state = Unstarted start; children = []; output }
 
-  let update_state (type i o) (t : (i, o) t) (current_input : i) =
+  let update_state
+        (type i o)
+        ~update_children_after_finish
+        (t : (i, o) t)
+        (current_input : i)
+    =
     let rec step
       : type a.
         (a, i, o) Computation.t -> (a, i, o) Continuation.t -> o * (i, o) State.t
@@ -217,7 +222,9 @@ module Runner = struct
     t.state <- state;
     t.output
     <- List.fold t.children ~init:output ~f:(fun output (Child.T child) ->
-      if is_some (Event.value child.child_finished)
+      if
+        is_some (Event.value child.child_finished)
+        && not update_children_after_finish
       then output
       else (
         let child_input = child.child_input ~parent:current_input in
@@ -230,6 +237,7 @@ end
 let create_component
       (type a i o)
       ~created_at
+      ~update_children_after_finish
       ~(start : i -> ((a, o) Component_finished.t, i, o) t)
       ~(input : i Data.t)
       ~(output : o Data.t)
@@ -254,15 +262,25 @@ let create_component
         ;;
 
         let output (t : t) _ = t.output
-        let update_state = Runner.update_state
+        let update_state = Runner.update_state ~update_children_after_finish
       end)
   in
   component, component_finished
 ;;
 
-let spawn created_at ~start ~input ~output ~child_input ~include_child_output =
+let spawn
+      ?(update_children_after_finish = false)
+      created_at
+      ~start
+      ~input
+      ~output
+      ~child_input
+      ~include_child_output
+  =
   thunk (fun () ->
-    let child, child_finished = create_component ~created_at ~start ~input ~output in
+    let child, child_finished =
+      create_component ~update_children_after_finish ~created_at ~start ~input ~output
+    in
     let%bind () = Spawn { child; child_finished; child_input; include_child_output } in
     return child_finished)
 ;;

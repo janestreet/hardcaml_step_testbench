@@ -2,8 +2,9 @@ open! Import
 open! Step_monad
 open! Step_monad.Let_syntax
 
-let create_component created_at start =
+let create_component ?(update_children_after_finish = false) created_at start =
   create_component
+    ~update_children_after_finish
     ~created_at
     ~start:(fun i ->
       let%bind () = start i in
@@ -382,6 +383,7 @@ let%expect_test "[spawn] + [for_]" =
 let%expect_test "output counter" =
   let component, _ =
     Step_monad.create_component
+      ~update_children_after_finish:false
       ~created_at:[%here]
       ~input:(module Data.Unit)
       ~output:(module Data.Int)
@@ -405,6 +407,7 @@ let%expect_test "output counter" =
 let%expect_test "add1" =
   let component, _ =
     Step_monad.create_component
+      ~update_children_after_finish:false
       ~created_at:[%here]
       ~input:(module Data.Int)
       ~output:(module Data.Int)
@@ -499,6 +502,7 @@ let%expect_test "parent runs before child" =
 let%expect_test "finished child doesn't contribute to output" =
   let component, component_finished =
     Step_monad.create_component
+      ~update_children_after_finish:false
       ~created_at:[%here]
       ~input:(module Data.Unit)
       ~output:(module Data.String)
@@ -541,4 +545,99 @@ let%expect_test "finished child doesn't contribute to output" =
     delay
     (step_number 5)
     after |}]
+;;
+
+let%expect_test "grand-child does not run when child terminates" =
+  let spawn here f =
+    Step_monad.spawn
+      here
+      ~start:(fun () ->
+        let%bind result = f () in
+        return { Component_finished.output = (); result })
+      ~input:(module Data.Unit)
+      ~output:(module Data.Unit)
+      ~child_input:(fun ~parent:() -> ())
+      ~include_child_output:(fun ~parent:() ~child:() -> ())
+  in
+  let test ~update_children_after_finish ~number_of_cycles_in_parent =
+    let component, _component_finished =
+      Step_monad.create_component
+        ~update_children_after_finish
+        ~created_at:[%here]
+        ~input:(module Data.Unit)
+        ~output:(module Data.Unit)
+        ~start:(fun () ->
+          let%bind _child =
+            spawn [%here] (fun () ->
+              let%bind _grandchild =
+                spawn [%here] (fun () ->
+                  let rec loop () =
+                    printf "Printing from grandchild\n";
+                    let%bind () = next_step [%here] () in
+                    loop ()
+                  in
+                  loop ())
+              in
+              let%bind () = next_step [%here] () in
+              return ())
+          in
+          let rec loop i =
+            if i = number_of_cycles_in_parent
+            then return ()
+            else (
+              let%bind () = next_step [%here] () in
+              loop (i + 1))
+          in
+          let%bind () = loop 0 in
+          return { Component_finished.output = (); result = () })
+    in
+    ignore
+      (Component.run_with_inputs
+         component
+         (List.init number_of_cycles_in_parent ~f:(Fn.const ()))
+       : (_ * _) list)
+  in
+  (* The tests below demonstrate that despite the grand-child running an infinite loop
+     that should print something every cycle, only the first two cycles is printed, since
+     the child terminates at after 1 clock cycle.
+  *)
+  test ~update_children_after_finish:false ~number_of_cycles_in_parent:1;
+  [%expect {|
+    Printing from grandchild |}];
+  test ~update_children_after_finish:false ~number_of_cycles_in_parent:2;
+  [%expect {|
+    Printing from grandchild
+    Printing from grandchild |}];
+  test ~update_children_after_finish:false ~number_of_cycles_in_parent:3;
+  [%expect {|
+    Printing from grandchild
+    Printing from grandchild |}];
+  test ~update_children_after_finish:false ~number_of_cycles_in_parent:10;
+  [%expect {|
+    Printing from grandchild
+    Printing from grandchild |}];
+  (* The tests belows requires that the grandchild stays alive after the intermediate
+     child terminates.
+  *)
+  test ~update_children_after_finish:true ~number_of_cycles_in_parent:1;
+  [%expect {|
+    Printing from grandchild |}];
+  test ~update_children_after_finish:true ~number_of_cycles_in_parent:2;
+  [%expect {|
+    Printing from grandchild
+    Printing from grandchild |}];
+  test ~update_children_after_finish:true ~number_of_cycles_in_parent:3;
+  [%expect
+    {|
+    Printing from grandchild
+    Printing from grandchild
+    Printing from grandchild |}];
+  test ~update_children_after_finish:true ~number_of_cycles_in_parent:5;
+  [%expect
+    {|
+    Printing from grandchild
+    Printing from grandchild
+    Printing from grandchild
+    Printing from grandchild
+    Printing from grandchild |}]
 ;;

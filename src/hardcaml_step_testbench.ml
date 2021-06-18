@@ -151,6 +151,7 @@ module Make (I : Interface.S) (O : Interface.S) = struct
     =
     let component, result_event =
       Step_monad.create_component
+        ~update_children_after_finish:false
         ~created_at:[%here]
         ~start:(start testbench)
         ~input:(module O_data)

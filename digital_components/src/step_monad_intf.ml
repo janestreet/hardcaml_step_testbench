@@ -54,9 +54,14 @@ module type Step_monad = sig
   (** [spawn] creates a child computation that runs [start].  [spawn] returns on the
       current step, and the child starts on the next step.  The parent computation uses
       [child_input] to adjust its input into the form that the child computation sees,
-      and [include_child_output] to incorporate the child's output into its output. *)
+      and [include_child_output] to incorporate the child's output into its output.
+
+      When [update_children_after_finish], unfinished tasks spawned from within [start]
+      will be executed even after [start] completes.
+  *)
   val spawn
-    :  Source_code_position.t
+    :  ?update_children_after_finish:bool (** default is [false] *)
+    -> Source_code_position.t
     -> start:('i_c -> (('a, 'o_c) Component_finished.t, 'i_c, 'o_c) t)
     -> input:'i_c Data.t
     -> output:'o_c Data.t
@@ -65,9 +70,14 @@ module type Step_monad = sig
     -> (('a, 'o_c) Component_finished.t Event.t, 'i, 'o) t
 
   (** [create_component] creates a [Component.t] that runs the computation described
-      by [start]. *)
+      by [start]. When [update_children_after_finish] is set to true, all component's
+      children will be updated even after the child terminates. This will result in
+      tasks spawned from within the child task to execute even after the child
+      terminates.
+  *)
   val create_component
     :  created_at:Source_code_position.t
+    -> update_children_after_finish:bool
     -> start:('i -> (('a, 'o) Component_finished.t, 'i, 'o) t)
     -> input:'i Data.t
     -> output:'o Data.t
