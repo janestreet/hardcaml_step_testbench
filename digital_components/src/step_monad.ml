@@ -222,9 +222,8 @@ module Runner = struct
     t.state <- state;
     t.output
     <- List.fold t.children ~init:output ~f:(fun output (Child.T child) ->
-      if
-        is_some (Event.value child.child_finished)
-        && not update_children_after_finish
+      if is_some (Event.value child.child_finished)
+      && not update_children_after_finish
       then output
       else (
         let child_input = child.child_input ~parent:current_input in

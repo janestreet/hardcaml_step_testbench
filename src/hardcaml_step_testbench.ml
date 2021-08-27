@@ -214,4 +214,19 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         return (hd :: tl)
     ;;
   end
+
+  module Array = struct
+    let init len ~f =
+      let%bind l = List.init len ~f in
+      return (Array.of_list l)
+    ;;
+
+    let iter t ~f = List.iter (Array.to_list t) ~f
+    let iteri t ~f = List.iteri (Array.to_list t) ~f
+
+    let map t ~f =
+      let%bind l = List.map (Array.to_list t) ~f in
+      return (Array.of_list l)
+    ;;
+  end
 end

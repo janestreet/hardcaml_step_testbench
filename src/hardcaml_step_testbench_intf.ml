@@ -113,6 +113,13 @@ module type S = sig
     val iteri : 'a list -> f:(int -> 'a -> unit t) -> unit t
     val map : 'a list -> f:('a -> 'b t) -> 'b list t
   end
+
+  module Array : sig
+    val init : int -> f:(int -> 'a t) -> 'a array t
+    val iter : 'a array -> f:('a -> unit t) -> unit t
+    val iteri : 'a array -> f:(int -> 'a -> unit t) -> unit t
+    val map : 'a array -> f:('a -> 'b t) -> 'b array t
+  end
 end
 
 module type Hardcaml_step_testbench = sig
