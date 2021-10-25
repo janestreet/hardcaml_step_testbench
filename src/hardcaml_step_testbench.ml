@@ -50,6 +50,8 @@ module Make (I : Interface.S) (O : Interface.S) = struct
   type 'a t = ('a, O_data.t, I_data.t) Step_monad.t
 
   let return x = Step_monad.return x
+  let map = Step_monad.map
+  let bind = Step_monad.bind
 
   let rec cycle ?(num_cycles = 1) (i : I_data.t) =
     if num_cycles < 1

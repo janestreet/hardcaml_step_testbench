@@ -28,6 +28,8 @@ module type S = sig
   type 'a t = ('a, O_data.t, I_data.t) Step_monad.t
 
   val return : 'a -> 'a t
+  val bind : 'a t -> f:('a -> 'b t) -> 'b t
+  val map : 'a t -> f:('a -> 'b) -> 'b t
 
   (** [cycle i_data ~num_cycles] waits for [num_cycles] cycles of the simulator to run,
       applying [i_data] to the simulator input ports, and returns the output computed in
