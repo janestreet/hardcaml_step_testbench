@@ -44,6 +44,7 @@ let%expect_test "testbench" =
   let simulator = Simulator.create make_circuit in
   let open! Tb.Let_syntax in
   let rec send_data ~first ~num_words _ : unit Tb_source.t =
+    let open Tb_source.Let_syntax in
     if num_words = 0
     then return ()
     else if Random.bool ()

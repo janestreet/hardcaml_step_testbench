@@ -20,16 +20,12 @@ module type S = sig
     include Data.S with type t := t
   end
 
-  module Let_syntax : module type of Step_monad.Let_syntax
-
   (** A testbench takes the circuit's output as its input and produces its output as input
       for the circuit.  An ['a t] describes a testbench computation that takes zero or
       more steps and produces a value of type ['a]. *)
   type 'a t = ('a, O_data.t, I_data.t) Step_monad.t
 
-  val return : 'a -> 'a t
-  val bind : 'a t -> f:('a -> 'b t) -> 'b t
-  val map : 'a t -> f:('a -> 'b) -> 'b t
+  include Monad.S with type 'a t := 'a t
 
   (** [cycle i_data ~num_cycles] waits for [num_cycles] cycles of the simulator to run,
       applying [i_data] to the simulator input ports, and returns the output computed in

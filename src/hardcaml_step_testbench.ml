@@ -8,9 +8,6 @@ module Make (I : Interface.S) (O : Interface.S) = struct
     type t = (Cyclesim.With_interface(I)(O).t[@sexp.opaque]) [@@deriving sexp_of]
   end
 
-  module Let_syntax = Step_monad.Let_syntax
-  open Let_syntax
-
   module Interface_as_data (I : Interface.S) :
     Digital_components.Data.S with type t = Bits.t I.t = struct
     type t = Bits.t I.t [@@deriving sexp_of]
@@ -49,9 +46,15 @@ module Make (I : Interface.S) (O : Interface.S) = struct
 
   type 'a t = ('a, O_data.t, I_data.t) Step_monad.t
 
-  let return x = Step_monad.return x
-  let map = Step_monad.map
-  let bind = Step_monad.bind
+  include Monad.Make (struct
+      type nonrec 'a t = 'a t
+
+      let return x = Step_monad.return x
+      let map = `Custom Step_monad.map
+      let bind = Step_monad.bind
+    end)
+
+  open Let_syntax
 
   let rec cycle ?(num_cycles = 1) (i : I_data.t) =
     if num_cycles < 1
