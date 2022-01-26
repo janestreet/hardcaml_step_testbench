@@ -55,9 +55,9 @@ module type S = sig
       types of the child testbench. *)
   val spawn_io
     :  inputs:(parent:'i -> child:I_data.t -> 'i)
-    -> outputs:(parent:'o -> O_data.t)
+    -> outputs:('o -> Bits.t O.t)
     -> (O_data.t -> 'a t)
-    -> (('a, I_data.t) finished_event, 'o, 'i) Step_monad.t
+    -> (('a, I_data.t) finished_event, 'o Before_and_after_edge.t, 'i) Step_monad.t
 
   (** Wait for the given event to occur, and extract its return value. *)
   val wait_for : ('a, 'b) finished_event -> 'a t
@@ -110,6 +110,7 @@ module type S = sig
     val iter : 'a list -> f:('a -> unit t) -> unit t
     val iteri : 'a list -> f:(int -> 'a -> unit t) -> unit t
     val map : 'a list -> f:('a -> 'b t) -> 'b list t
+    val mapi : 'a list -> f:(int -> 'a -> 'b t) -> 'b list t
   end
 
   module Array : sig

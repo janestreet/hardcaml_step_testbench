@@ -28,7 +28,7 @@ open Signal
 let make_circuit (i : Signal.t I.t) =
   let reg_spec = Reg_spec.create () ~clock:i.clk in
   let enable = i.source.valid in
-  let count = reg_fb reg_spec ~enable ~w:16 (fun d -> d +:. 1) in
+  let count = reg_fb reg_spec ~enable ~width:16 ~f:(fun d -> d +:. 1) in
   { O.source = { i.source with data = count @: select i.source.data 15 0 } }
 ;;
 
@@ -83,9 +83,7 @@ let%expect_test "testbench" =
       Tb_source.spawn_io
         ~inputs:(fun ~(parent : _ I.t) ~child ->
           { parent with source = Tb_source.merge_inputs ~parent:parent.source ~child })
-        ~outputs:(fun ~parent ->
-          Hardcaml_step_testbench.Before_and_after_edge.map parent ~f:(fun parent ->
-            parent.O.source))
+        ~outputs:(fun parent -> parent.O.source)
         (send_data ~first:true ~num_words:5)
     in
     let%bind recv_finished = Tb.spawn (recv_data []) in
@@ -274,7 +272,7 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
       let spawn task =
         if normal_spawn
         then Tb.spawn task
-        else Tb.spawn_io task ~inputs:Tb.merge_inputs ~outputs:(fun ~parent -> parent)
+        else Tb.spawn_io task ~inputs:Tb.merge_inputs ~outputs:Fn.id
       in
       let%bind h = spawn set_d in
       let%bind _ = Tb.wait_for h in

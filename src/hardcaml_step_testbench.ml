@@ -84,12 +84,12 @@ module Make (I : Interface.S) (O : Interface.S) = struct
       [%here]
       ~input:(module O_data)
       ~output:(module I_data)
-      ~child_input:outputs
+      ~child_input:(fun ~parent -> Before_and_after_edge.map ~f:outputs parent)
       ~include_child_output:inputs
       ~start:(start task)
   ;;
 
-  let spawn task = spawn_io task ~outputs:(fun ~parent -> parent) ~inputs:merge_inputs
+  let spawn task = spawn_io task ~outputs:Fn.id ~inputs:merge_inputs
 
   let wait_for (event : _ finished_event) =
     let%bind x = Step_monad.wait_for event ~output:I_data.undefined in
@@ -217,6 +217,18 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         let%bind hd = f hd in
         let%bind tl = map tl ~f in
         return (hd :: tl)
+    ;;
+
+    let mapi t ~f =
+      let rec mapi i t ~f =
+        match t with
+        | [] -> return []
+        | hd :: tl ->
+          let%bind hd = f i hd in
+          let%bind tl = mapi (i + 1) tl ~f in
+          return (hd :: tl)
+      in
+      mapi 0 t ~f
     ;;
   end
 
