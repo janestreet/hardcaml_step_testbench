@@ -199,6 +199,8 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         iter tl ~f
     ;;
 
+    let iter2_exn a b ~f = iter (List.zip_exn a b) ~f:(fun (a, b) -> f a b)
+
     let iteri t ~f =
       let rec iteri i t ~f =
         match t with

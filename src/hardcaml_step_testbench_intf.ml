@@ -109,6 +109,7 @@ module type S = sig
 
     val iter : 'a list -> f:('a -> unit t) -> unit t
     val iteri : 'a list -> f:(int -> 'a -> unit t) -> unit t
+    val iter2_exn : 'a list -> 'b list -> f:('a -> 'b -> unit t) -> unit t
     val map : 'a list -> f:('a -> 'b t) -> 'b list t
     val mapi : 'a list -> f:(int -> 'a -> 'b t) -> 'b list t
   end
