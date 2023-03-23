@@ -8,8 +8,7 @@ let%expect_test "[and_], [or_]" =
   let test t =
     List.iter Bool.all ~f:(fun b1 ->
       List.iter Bool.all ~f:(fun b2 ->
-        print_s
-          [%message "" ~_:(b1 : bool) ~_:(b2 : bool) ~_:(output t (b1, b2) : bool)]))
+        print_s [%message "" ~_:(b1 : bool) ~_:(b2 : bool) ~_:(output t (b1, b2) : bool)]))
   in
   test and_;
   [%expect

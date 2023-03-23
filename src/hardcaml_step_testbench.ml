@@ -18,7 +18,7 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         true)
     ;;
 
-    let undefined = I.map I.t ~f:(fun _ -> Bits.empty)
+    let undefined = I.const Bits.empty
   end
 
   module I_data = Interface_as_data (I)
@@ -96,8 +96,8 @@ module Make (I : Interface.S) (O : Interface.S) = struct
     return x.result
   ;;
 
-  let input_hold = I.map I.t ~f:(fun _ -> Bits.empty)
-  let input_zero = I.map I.t ~f:(fun (_, b) -> Bits.zero b)
+  let input_hold = I.const Bits.empty
+  let input_zero = I.map I.port_widths ~f:(fun b -> Bits.zero b)
 
   let rec wait_for_with_timeout (event : _ finished_event) ~timeout_in_cycles =
     if timeout_in_cycles < 0

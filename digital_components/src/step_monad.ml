@@ -187,8 +187,7 @@ module Runner = struct
         (current_input : i)
     =
     let rec step
-      : type a.
-        (a, i, o) Computation.t -> (a, i, o) Continuation.t -> o * (i, o) State.t
+      : type a. (a, i, o) Computation.t -> (a, i, o) Continuation.t -> o * (i, o) State.t
       =
       fun computation continuation ->
         match computation with

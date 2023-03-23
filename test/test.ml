@@ -115,7 +115,7 @@ let%expect_test "input setting hierarchy" =
     module T = struct
       include Data
 
-      let t = map t ~f:(fun (n, b) -> n ^ "_o", b)
+      let port_names_and_widths = map port_names_and_widths ~f:(fun (n, b) -> n ^ "_o", b)
     end
 
     include (T : Hardcaml.Interface.S with type 'a t = 'a T.t)
