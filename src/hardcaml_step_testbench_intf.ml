@@ -50,7 +50,7 @@ module type S = sig
       input is [empty], the parent's value is used. *)
   val merge_inputs : parent:I_data.t -> child:I_data.t -> I_data.t
 
-  (** Launch a task from a testbench with a [cycle] funtion taking ['i] to ['o].  The
+  (** Launch a task from a testbench with a [cycle] function taking ['i] to ['o].  The
       [inputs] and [outputs] arguments should construct [I_data.t] and [O_data.t] from the
       types of the child testbench. *)
   val spawn_io

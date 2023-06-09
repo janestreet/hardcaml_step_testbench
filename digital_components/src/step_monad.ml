@@ -190,27 +190,27 @@ module Runner = struct
       : type a. (a, i, o) Computation.t -> (a, i, o) Continuation.t -> o * (i, o) State.t
       =
       fun computation continuation ->
-        match computation with
-        | Bind (computation, f) -> step computation (Bind (f, continuation))
-        | Current_input -> continue continuation current_input
-        | Next_step (_, output) -> output, Running continuation
-        | Return a -> continue continuation a
-        | Thunk f -> step (f ()) continuation
-        | Spawn { child; child_finished; child_input; include_child_output } ->
-          t.children
-          <- Child.create
-               ~child_finished
-               ~child_input
-               ~component:child
-               ~include_child_output
-             :: t.children;
-          continue continuation ()
+      match computation with
+      | Bind (computation, f) -> step computation (Bind (f, continuation))
+      | Current_input -> continue continuation current_input
+      | Next_step (_, output) -> output, Running continuation
+      | Return a -> continue continuation a
+      | Thunk f -> step (f ()) continuation
+      | Spawn { child; child_finished; child_input; include_child_output } ->
+        t.children
+        <- Child.create
+             ~child_finished
+             ~child_input
+             ~component:child
+             ~include_child_output
+           :: t.children;
+        continue continuation ()
     and continue : type a. (a, i, o) Continuation.t -> a -> o * (i, o) State.t =
       fun continuation a ->
-        let module C = Continuation in
-        match continuation with
-        | C.Empty -> a, Finished a
-        | C.Bind (f, c) -> step (f a) c
+      let module C = Continuation in
+      match continuation with
+      | C.Empty -> a, Finished a
+      | C.Bind (f, c) -> step (f a) c
     in
     let output, state =
       match t.state with
