@@ -16,7 +16,7 @@ module Event : sig
   val set_value : 'a t -> 'a -> unit
   val value : 'a t -> 'a option
 end = struct
-  type 'a t = { mutable value : 'a option } [@@deriving fields, sexp_of]
+  type 'a t = { mutable value : 'a option } [@@deriving fields ~getters, sexp_of]
 
   let create () = { value = None }
 

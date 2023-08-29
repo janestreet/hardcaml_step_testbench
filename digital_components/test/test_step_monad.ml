@@ -46,7 +46,7 @@ let%expect_test "[return]" =
   [%expect
     {|
     (step_number 0)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ()))) |}]
@@ -59,7 +59,7 @@ let%expect_test "[bind]" =
   [%expect
     {|
     (step_number 0)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ()))) |}]
@@ -71,7 +71,7 @@ let%expect_test "[next_step]" =
     {|
     (step_number 0)
     (step_number 1)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ()))) |}]
@@ -86,10 +86,10 @@ let%expect_test "[spawn] + [wait]" =
     {|
     (step_number 0)
     (step_number 1)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
         ((state (Finished ()))
          (children ())
          (output   ())))))
@@ -106,10 +106,10 @@ let%expect_test "[spawn] + [wait] with child taking a step" =
     (step_number 0)
     (step_number 1)
     (step_number 2)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
         ((state (Finished ()))
          (children ())
          (output   ())))))
@@ -127,7 +127,7 @@ let%expect_test "[for_]" =
   [%expect
     {|
     (step_number 0)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ()))) |}];
@@ -137,7 +137,7 @@ let%expect_test "[for_]" =
     (step_number 0)
     (i 0)
     (step_number 1)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ()))) |}];
@@ -149,7 +149,7 @@ let%expect_test "[for_]" =
     (step_number 1)
     (i 1)
     (step_number 2)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ()))) |}];
@@ -163,7 +163,7 @@ let%expect_test "[for_]" =
     (step_number 2)
     (i 2)
     (step_number 3)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ()))) |}]
@@ -195,10 +195,10 @@ let%expect_test "parallel components" =
     2 0
     (step_number 3)
     (step_number 4)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
         ((state (Finished ()))
          (children ())
          (output   ())))))
@@ -215,14 +215,14 @@ let%expect_test "parallel components" =
     2 0
     (step_number 3)
     (step_number 4)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children (
-        (lib/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))))
@@ -242,18 +242,18 @@ let%expect_test "parallel components" =
     2 0
     (step_number 3)
     (step_number 4)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children (
-        (lib/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))))
@@ -276,22 +276,22 @@ let%expect_test "parallel components" =
     2 0
     (step_number 3)
     (step_number 4)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children (
-        (lib/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))))
@@ -308,7 +308,7 @@ let%expect_test "[delay]" =
     (step_number 3)
     (step_number 4)
     (step_number 5)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ()))) |}]
@@ -321,20 +321,20 @@ let%expect_test "[repeat]" =
   [%expect
     {|
     (step_number 0)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ())))
     (step_number 0)
     (step_number 1)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ())))
     (step_number 0)
     (step_number 1)
     (step_number 2)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ())))
@@ -342,7 +342,7 @@ let%expect_test "[repeat]" =
     (step_number 1)
     (step_number 2)
     (step_number 3)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ()))) |}]
@@ -370,10 +370,10 @@ let%expect_test "[spawn] + [for_]" =
     (i 3)
     (step_number 4)
     (step_number 5)
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
         ((state (Finished ()))
          (children ())
          (output   ())))))
@@ -454,10 +454,10 @@ let%expect_test "child returning a value" =
     (child_finished (
       (output 17)
       (result foo)))
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
         ((state (Finished 17)) (children ()) (output 17)))))
       (output ()))) |}]
 ;;
@@ -489,10 +489,10 @@ let%expect_test "parent runs before child" =
     child
     (step_number 3)
     child
-    (lib/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
         ((state (Running (Bind <fun> (Bind <fun> (Bind <fun> Empty)))))
          (children ())
          (output   ())))))

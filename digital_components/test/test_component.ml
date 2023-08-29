@@ -51,22 +51,25 @@ let%expect_test "[flip_flop]" =
   let t = flip_flop () in
   let show_output t = print_s [%sexp (output t false : bool)] in
   show t;
-  [%expect {|
-    (lib/digital_components/src/component.ml:LINE:COL (Flip_flop false)) |}];
+  [%expect
+    {|
+    (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop false)) |}];
   show_output t;
   [%expect {|
     false |}];
   update_state t true;
   show t;
-  [%expect {|
-    (lib/digital_components/src/component.ml:LINE:COL (Flip_flop true)) |}];
+  [%expect
+    {|
+    (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop true)) |}];
   show_output t;
   [%expect {|
     true |}];
   update_state t false;
   show t;
-  [%expect {|
-    (lib/digital_components/src/component.ml:LINE:COL (Flip_flop false)) |}];
+  [%expect
+    {|
+    (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop false)) |}];
   show_output t;
   [%expect {|
     false |}]
@@ -77,7 +80,7 @@ let%expect_test "[flip_flop_with_load_enable]" =
   show t;
   [%expect
     {|
-    (lib/digital_components/src/component.ml:LINE:COL
+    (lib/hardcaml/digital_components/src/component.ml:LINE:COL
      (Flip_flop_with_load_enable false)) |}];
   run_with_inputs
     t
@@ -110,7 +113,7 @@ let%expect_test "[flip_flop_with_load_enable_and_reset]" =
   show t;
   [%expect
     {|
-    (lib/digital_components/src/component.ml:LINE:COL
+    (lib/hardcaml/digital_components/src/component.ml:LINE:COL
      (Flip_flop_with_load_enable_and_reset false)) |}];
   run_with_inputs
     t
