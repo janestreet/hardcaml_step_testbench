@@ -47,12 +47,12 @@ module Make (I : Interface.S) (O : Interface.S) = struct
   type 'a t = ('a, O_data.t, I_data.t) Step_monad.t
 
   include Monad.Make (struct
-      type nonrec 'a t = 'a t
+    type nonrec 'a t = 'a t
 
-      let return x = Step_monad.return x
-      let map = `Custom Step_monad.map
-      let bind = Step_monad.bind
-    end)
+    let return x = Step_monad.return x
+    let map = `Custom Step_monad.map
+    let bind = Step_monad.bind
+  end)
 
   open Let_syntax
 
@@ -147,12 +147,12 @@ module Make (I : Interface.S) (O : Interface.S) = struct
   ;;
 
   let run_with_timeout
-        ?(input_default = input_hold)
-        ?show_steps
-        ?timeout
-        ()
-        ~(simulator : Simulator.t)
-        ~testbench
+    ?(input_default = input_hold)
+    ?show_steps
+    ?timeout
+    ()
+    ~(simulator : Simulator.t)
+    ~testbench
     =
     let component, result_event =
       Step_monad.create_component

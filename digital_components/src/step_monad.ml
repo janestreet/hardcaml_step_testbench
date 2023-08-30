@@ -181,10 +181,10 @@ module Runner = struct
   let create ~start ~output = { state = Unstarted start; children = []; output }
 
   let update_state
-        (type i o)
-        ~update_children_after_finish
-        (t : (i, o) t)
-        (current_input : i)
+    (type i o)
+    ~update_children_after_finish
+    (t : (i, o) t)
+    (current_input : i)
     =
     let rec step
       : type a. (a, i, o) Computation.t -> (a, i, o) Continuation.t -> o * (i, o) State.t
@@ -198,12 +198,12 @@ module Runner = struct
       | Thunk f -> step (f ()) continuation
       | Spawn { child; child_finished; child_input; include_child_output } ->
         t.children
-        <- Child.create
-             ~child_finished
-             ~child_input
-             ~component:child
-             ~include_child_output
-           :: t.children;
+          <- Child.create
+               ~child_finished
+               ~child_input
+               ~component:child
+               ~include_child_output
+             :: t.children;
         continue continuation ()
     and continue : type a. (a, i, o) Continuation.t -> a -> o * (i, o) State.t =
       fun continuation a ->
@@ -220,25 +220,25 @@ module Runner = struct
     in
     t.state <- state;
     t.output
-    <- List.fold t.children ~init:output ~f:(fun output (Child.T child) ->
-      if is_some (Event.value child.child_finished)
-      && not update_children_after_finish
-      then output
-      else (
-        let child_input = child.child_input ~parent:current_input in
-        Component.update_state child.component child_input;
-        let child_output = Component.output child.component child_input in
-        child.include_child_output ~parent:output ~child:child_output))
+      <- List.fold t.children ~init:output ~f:(fun output (Child.T child) ->
+           if is_some (Event.value child.child_finished)
+              && not update_children_after_finish
+           then output
+           else (
+             let child_input = child.child_input ~parent:current_input in
+             Component.update_state child.component child_input;
+             let child_output = Component.output child.component child_input in
+             child.include_child_output ~parent:output ~child:child_output))
   ;;
 end
 
 let create_component
-      (type a i o)
-      ~created_at
-      ~update_children_after_finish
-      ~(start : i -> ((a, o) Component_finished.t, i, o) t)
-      ~(input : i Data.t)
-      ~(output : o Data.t)
+  (type a i o)
+  ~created_at
+  ~update_children_after_finish
+  ~(start : i -> ((a, o) Component_finished.t, i, o) t)
+  ~(input : i Data.t)
+  ~(output : o Data.t)
   : (i, o) Component.t * (a, o) Component_finished.t Event.t
   =
   let component_finished = Event.create () in
@@ -267,13 +267,13 @@ let create_component
 ;;
 
 let spawn
-      ?(update_children_after_finish = false)
-      created_at
-      ~start
-      ~input
-      ~output
-      ~child_input
-      ~include_child_output
+  ?(update_children_after_finish = false)
+  created_at
+  ~start
+  ~input
+  ~output
+  ~child_input
+  ~include_child_output
   =
   thunk (fun () ->
     let child, child_finished =

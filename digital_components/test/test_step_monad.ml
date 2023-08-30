@@ -20,7 +20,7 @@ let test start =
     ~show_steps:true
     ~first_input:()
     ~next_input:(fun () ->
-      if is_some (Event.value component_finished) then Finished else Input ());
+    if is_some (Event.value component_finished) then Finished else Input ());
   print_s [%sexp (component : (_, _) Component.t)] ~hide_positions:true
 ;;
 
@@ -529,8 +529,8 @@ let%expect_test "finished child doesn't contribute to output" =
     ~show_steps:true
     ~first_input:()
     ~next_input:(fun output ->
-      print_s [%sexp (output : string)];
-      if is_some (Event.value component_finished) then Finished else Input ());
+    print_s [%sexp (output : string)];
+    if is_some (Event.value component_finished) then Finished else Input ());
   [%expect
     {|
     (step_number 0)
@@ -595,7 +595,7 @@ let%expect_test "grand-child does not run when child terminates" =
       (Component.run_with_inputs
          component
          (List.init number_of_cycles_in_parent ~f:(Fn.const ()))
-       : (_ * _) list)
+        : (_ * _) list)
   in
   (* The tests below demonstrate that despite the grand-child running an infinite loop
      that should print something every cycle, only the first two cycles is printed, since

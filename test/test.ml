@@ -156,8 +156,8 @@ let%expect_test "input setting hierarchy" =
         0
         (Array.length h - 1)
         (fun i ->
-           let%bind _ = Tb.cycle { a = h.(i); b = h.(i) } in
-           return ())
+          let%bind _ = Tb.cycle { a = h.(i); b = h.(i) } in
+          return ())
   in
   let data =
     Tb.run_until_finished

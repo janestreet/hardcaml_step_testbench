@@ -43,10 +43,10 @@ module Next_input = struct
 end
 
 let run_until_finished
-      ?(show_steps = false)
-      t
-      ~first_input
-      ~(next_input : _ -> _ Next_input.t)
+  ?(show_steps = false)
+  t
+  ~first_input
+  ~(next_input : _ -> _ Next_input.t)
   =
   let step_number = ref 0 in
   let rec loop input =
@@ -62,9 +62,9 @@ let run_until_finished
 ;;
 
 let sequence
-      (type a b c)
-      (T (module T1) as t1 : (a, b) t)
-      (T (module T2) as t2 : (b, c) t)
+  (type a b c)
+  (T (module T1) as t1 : (a, b) t)
+  (T (module T2) as t2 : (b, c) t)
   : (a, c) t
   =
   T
@@ -89,10 +89,10 @@ let sequence
 ;;
 
 let map_input
-      (type i1 i2 o)
-      (T (module T) : (i2, o) t)
-      (module Input : Data.S with type t = i1)
-      ~f
+  (type i1 i2 o)
+  (T (module T) : (i2, o) t)
+  (module Input : Data.S with type t = i1)
+  ~f
   =
   T
     (module struct
@@ -109,10 +109,10 @@ let map_input
 ;;
 
 let map_output
-      (type i o1 o2)
-      (T (module T) : (i, o1) t)
-      (module Output : Data.S with type t = o2)
-      ~f
+  (type i o1 o2)
+  (T (module T) : (i, o1) t)
+  (module Output : Data.S with type t = o2)
+  ~f
   =
   T
     (module struct
