@@ -1,6 +1,16 @@
-open! Import
-open! Step_monad
+open Base
+open Expect_test_helpers_core
+module Data = Digital_components.Data
+module Step_monad = Digital_components.Step_monad.Make (Monad.Ident)
+open Step_monad
 open! Step_monad.Let_syntax
+
+let run_with_inputs (t : _ Component.t) inputs =
+  let sexp_of_input = Component.sexp_of_input t in
+  let sexp_of_output = Component.sexp_of_output t in
+  let sexp_of_io (input, output) = [%message (input : input) (output : output)] in
+  print_s [%sexp (Component.run_with_inputs t inputs : io list)]
+;;
 
 let create_component ?(update_children_after_finish = false) created_at start =
   create_component
@@ -20,7 +30,7 @@ let test start =
     ~show_steps:true
     ~first_input:()
     ~next_input:(fun () ->
-    if is_some (Event.value component_finished) then Finished else Input ());
+    if Option.is_some (Event.value component_finished) then Finished else Input ());
   print_s [%sexp (component : (_, _) Component.t)] ~hide_positions:true
 ;;
 
@@ -178,7 +188,7 @@ let%expect_test "parallel components" =
           (List.init num_tasks ~f:(fun task_index ->
              spawn (fun () ->
                for_ 0 2 (fun step_index ->
-                 printf "%d %d\n" step_index task_index;
+                 Stdio.printf "%d %d\n" step_index task_index;
                  next_step [%here] ()))))
       in
       let%bind _ = all (List.map children ~f:wait_for) in
@@ -530,7 +540,7 @@ let%expect_test "finished child doesn't contribute to output" =
     ~first_input:()
     ~next_input:(fun output ->
     print_s [%sexp (output : string)];
-    if is_some (Event.value component_finished) then Finished else Input ());
+    if Option.is_some (Event.value component_finished) then Finished else Input ());
   [%expect
     {|
     (step_number 0)
@@ -572,7 +582,7 @@ let%expect_test "grand-child does not run when child terminates" =
               let%bind _grandchild =
                 spawn [%here] (fun () ->
                   let rec loop () =
-                    printf "Printing from grandchild\n";
+                    Stdio.printf "Printing from grandchild\n";
                     let%bind () = next_step [%here] () in
                     loop ()
                   in

@@ -1,14 +1,27 @@
-open! Import
-open! Component
+open Base
+open Expect_test_helpers_base
+open Digital_components
+module Component = Component.Make (Monad.Ident)
+open Component
 
-let run_with_inputs = Import.run_with_inputs
-let show t = print_s [%sexp (t : (_, _) t)] ~hide_positions:true
+let run_with_inputs (t : _ Component.t) inputs =
+  let sexp_of_input = Component.sexp_of_input t in
+  let sexp_of_output = Component.sexp_of_output t in
+  let sexp_of_io (input, output) = [%message (input : input) (output : output)] in
+  print_s [%sexp (Component.run_with_inputs t inputs : io list)]
+;;
+
+let show (t : _ Component.t) =
+  print_s [%sexp (t : (_, _) Component.t)] ~hide_positions:true
+;;
 
 let%expect_test "[and_], [or_]" =
   let test t =
     List.iter Bool.all ~f:(fun b1 ->
       List.iter Bool.all ~f:(fun b2 ->
-        print_s [%message "" ~_:(b1 : bool) ~_:(b2 : bool) ~_:(output t (b1, b2) : bool)]))
+        print_s
+          [%message
+            "" ~_:(b1 : bool) ~_:(b2 : bool) ~_:(Component.output t (b1, b2) : bool)]))
   in
   test and_;
   [%expect

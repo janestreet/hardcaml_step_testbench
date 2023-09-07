@@ -1,4 +1,4 @@
-open! Import
+open! Base
 include Data_intf
 
 type 'd t = (module S with type t = 'd)

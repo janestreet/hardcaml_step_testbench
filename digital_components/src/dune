@@ -1,3 +1,3 @@
 (library (name digital_components)
  (public_name hardcaml_step_testbench.digital_components)
- (libraries base expect_test_helpers_core) (preprocess (pps ppx_jane)))
+ (libraries base stdio) (preprocess (pps ppx_jane)))

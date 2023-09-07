@@ -12,10 +12,11 @@ build: [
 depends: [
   "ocaml" {>= "4.14.0"}
   "base"
-  "expect_test_helpers_core"
   "hardcaml"
+  "hardcaml_event_driven_sim"
   "ppx_jane"
-  "dune"                     {>= "2.0.0"}
+  "stdio"
+  "dune"                      {>= "2.0.0"}
 ]
 available: arch != "arm32" & arch != "x86_32"
 synopsis: "Hardcaml Testbench Monad"

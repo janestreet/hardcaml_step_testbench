@@ -1,14 +1,12 @@
-open! Import
+open Base
+open Hardcaml
+open Digital_components
 
-module type S = sig
+(** Core API of step testbenches, decoupled from the functions that run them. **)
+module type S_api = sig
+  module Step_monad : Digital_components.Step_monad.S
   module I : Hardcaml.Interface.S
   module O : Hardcaml.Interface.S
-
-  (** A simulator for the design being tested. *)
-  module Simulator : sig
-    type t = Cyclesim.With_interface(I)(O).t [@@deriving sexp_of]
-  end
-
   module I_data : Data.S with type t = Bits.t I.t
 
   module O_data : sig
@@ -77,6 +75,47 @@ module type S = sig
       testbench. *)
   val input_zero : Bits.t I.t
 
+  module List : sig
+    (** Construct a list of step monad results. The binds occurs from [0, 1, ...] which is
+        the same as [Deferred.List.init] but opposite to [Base.List.init]. *)
+    val init : int -> f:(int -> 'a t) -> 'a list t
+
+    val iter : 'a list -> f:('a -> unit t) -> unit t
+    val iteri : 'a list -> f:(int -> 'a -> unit t) -> unit t
+    val iter2_exn : 'a list -> 'b list -> f:('a -> 'b -> unit t) -> unit t
+    val map : 'a list -> f:('a -> 'b t) -> 'b list t
+    val mapi : 'a list -> f:(int -> 'a -> 'b t) -> 'b list t
+  end
+
+  module Array : sig
+    val init : int -> f:(int -> 'a t) -> 'a array t
+    val iter : 'a array -> f:('a -> unit t) -> unit t
+    val iteri : 'a array -> f:(int -> 'a -> unit t) -> unit t
+    val map : 'a array -> f:('a -> 'b t) -> 'b array t
+  end
+end
+
+module type Monads = sig
+  module Input_monad : Monad.S
+  module Step_monad : Digital_components.Step_monad.M(Input_monad).S
+end
+
+module M_api (Monads : Monads) (I : Interface.S) (O : Interface.S) = struct
+  module type S =
+    S_api with module Step_monad = Monads.Step_monad and module I = I and module O = O
+end
+
+module Cyclesim_input_monad = Monad.Ident
+module Cyclesim_step_monad = Digital_components.Step_monad.Make (Cyclesim_input_monad)
+
+module type S_cyclesim = sig
+  include S_api with module Step_monad = Cyclesim_step_monad
+
+  (** A simulator for the design being tested. *)
+  module Simulator : sig
+    type t = Cyclesim.With_interface(I)(O).t [@@deriving sexp_of]
+  end
+
   (** Run the testbench until the main task finishes. The [input_default] argument
       controls what should happen if an input is unset by tasks in the testbench on any
       particular cycle. If a field is set to [Bits.empty] then the previous value should
@@ -101,30 +140,96 @@ module type S = sig
     -> simulator:Simulator.t
     -> testbench:(O_data.t -> 'a t)
     -> 'a
+end
 
-  module List : sig
-    (** Construct a list of step monad results. The binds occurs from [0, 1, ...] which is
-        the same as [Deferred.List.init] but opposite to [Base.List.init]. *)
-    val init : int -> f:(int -> 'a t) -> 'a list t
+module Evsim_logic = Hardcaml_event_driven_sim.Two_state_logic
+module Evsim = Hardcaml_event_driven_sim.Make (Evsim_logic)
+module Evsim_input_monad = Evsim.Event_simulator.Async.Deferred
+module Evsim_step_monad = Digital_components.Step_monad.Make (Evsim_input_monad)
 
-    val iter : 'a list -> f:('a -> unit t) -> unit t
-    val iteri : 'a list -> f:(int -> 'a -> unit t) -> unit t
-    val iter2_exn : 'a list -> 'b list -> f:('a -> 'b -> unit t) -> unit t
-    val map : 'a list -> f:('a -> 'b t) -> 'b list t
-    val mapi : 'a list -> f:(int -> 'a -> 'b t) -> 'b list t
+(** [Event_driven_sim] implementation of step testbenches.
+
+    Each step testbench is run by a single process that is sensitive to a single clock.
+    Multiple stepbenches can be run in different processes.
+*)
+module type S_evsim = sig
+  include S_api with module Step_monad = Evsim_step_monad
+
+  module Simulation_step : sig
+    type t
+
+    (** Set inputs, waiting for falling edge, read outputs (for before edge), wait for
+        rising edge, read outputs (for after edge). *)
+    val cyclesim_compatible : t
+
+    (** Set inputs, waiting for rising edge and read outputs. Before and after edge
+        results are the same. *)
+    val rising_edge : t
   end
 
-  module Array : sig
-    val init : int -> f:(int -> 'a t) -> 'a array t
-    val iter : 'a array -> f:('a -> unit t) -> unit t
-    val iteri : 'a array -> f:(int -> 'a -> unit t) -> unit t
-    val map : 'a array -> f:('a -> 'b t) -> 'b array t
-  end
+  type ('a, 'r) run =
+    ?input_default:Evsim_logic.t I.t
+    -> ?show_steps:bool
+    -> ?timeout:int
+    -> ?simulation_step:Simulation_step.t (** Default is [cyclesim_compatible] *)
+    -> unit
+    -> clock:Evsim_logic.t Evsim.Event_simulator.Signal.t
+    -> inputs:Evsim_logic.t Evsim.Event_simulator.Signal.t I.t
+    -> outputs:Evsim_logic.t Evsim.Event_simulator.Signal.t O.t
+    -> testbench:(O_data.t -> 'a t)
+    -> 'r
+
+  (** Create an event sim deferred that can be run inside a process. The result of the
+      step testbench is returned.  None is returned if the simulation times out.
+
+      The clock signal should be driven externally - do NOT set it within the step moand.
+  *)
+  val deferred : ('a, unit -> 'a option Evsim.Event_simulator.Async.Deferred.t) run
+
+  (** Wrap an event sim in a process and wait forever after it completes. *)
+  val process : (unit, Evsim.Event_simulator.Process.t) run
 end
 
 module type Hardcaml_step_testbench = sig
-  module type S = S
-
   module Before_and_after_edge = Before_and_after_edge
-  module Make (I : Interface.S) (O : Interface.S) : S with module I := I and module O := O
+
+  (** Stepbench API compatible with both [Cyclesim] and [Event_driven_sim]. Testbenches
+      can be functorised over [Monads] to be generic. *)
+  module Api : sig
+    (** Both the input and step monads together for constructing the simulator API. The
+        [Cyclesim] and [Event_driven_sim] implementations below can be used to satisfy
+        this interface. *)
+    module type Monads = Monads
+
+    module type S = S_api
+
+    module M = M_api
+    module Make (Monads : Monads) (I : Interface.S) (O : Interface.S) : M(Monads)(I)(O).S
+  end
+
+  (** [Cyclesim] implementation of step testbenches. *)
+  module Cyclesim : sig
+    module Input_monad = Cyclesim_input_monad
+    module Step_monad = Cyclesim_step_monad
+
+    module type S = S_cyclesim
+
+    module Make (I : Interface.S) (O : Interface.S) :
+      S with module I := I and module O := O
+  end
+
+  (** [Event_driven_sim] implementation of step testbenches. *)
+  module Event_driven_sim : sig
+    module Input_monad = Evsim_input_monad
+    module Step_monad = Evsim_step_monad
+    module Logic = Evsim_logic
+    module Simulator = Evsim
+
+    module type S = S_evsim
+
+    module Make (I : Interface.S) (O : Interface.S) :
+      S with module I := I and module O := O
+  end
+
+  include module type of Cyclesim
 end

@@ -1,6 +1,6 @@
 (** [Data.S] is an interface specifying data that is processed by a digital component. *)
 
-open! Import
+open! Base
 
 module type S = sig
   type t [@@deriving sexp_of]

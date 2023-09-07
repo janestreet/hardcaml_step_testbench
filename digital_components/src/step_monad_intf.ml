@@ -6,9 +6,12 @@
     The [spawn] function allows a computation to start other sequential components -- all
     spawned components run in parallel. *)
 
-open! Import
+open! Base
 
-module type Step_monad = sig
+module type S = sig
+  module Input_monad : Monad.S
+  module Component : Component.M(Input_monad).S
+
   type ('a, 'i, 'o) t [@@deriving sexp_of]
 
   include Monad.S3 with type ('a, 'b, 'c) t := ('a, 'b, 'c) t
@@ -82,4 +85,15 @@ module type Step_monad = sig
     -> input:'i Data.t
     -> output:'o Data.t
     -> ('i, 'o) Component.t * ('a, 'o) Component_finished.t Event.t
+end
+
+module M (Input_monad : Monad.S) = struct
+  module type S = S with module Input_monad = Input_monad
+end
+
+module type Step_monad = sig
+  module type S = S
+
+  module M = M
+  module Make (Input_monad : Monad.S) : M(Input_monad).S
 end
