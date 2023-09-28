@@ -246,6 +246,7 @@ module Cyclesim = struct
 
     let run_with_timeout
       ?(input_default = input_hold)
+      ?(update_children_after_finish = false)
       ?show_steps
       ?timeout
       ()
@@ -254,7 +255,7 @@ module Cyclesim = struct
       =
       let component, result_event =
         Step_monad.create_component
-          ~update_children_after_finish:false
+          ~update_children_after_finish
           ~created_at:[%here]
           ~start:(start testbench)
           ~input:(module O_data)
@@ -270,8 +271,23 @@ module Cyclesim = struct
       | Some x -> Some x.result
     ;;
 
-    let run_until_finished ?input_default ?show_steps () ~simulator ~testbench =
-      match run_with_timeout ?input_default ?show_steps () ~simulator ~testbench with
+    let run_until_finished
+      ?input_default
+      ?show_steps
+      ?update_children_after_finish
+      ()
+      ~simulator
+      ~testbench
+      =
+      match
+        run_with_timeout
+          ?input_default
+          ?show_steps
+          ?update_children_after_finish
+          ()
+          ~simulator
+          ~testbench
+      with
       | Some result -> result
       | None -> raise_s [%message "Step testbench did not complete with a result."]
     ;;

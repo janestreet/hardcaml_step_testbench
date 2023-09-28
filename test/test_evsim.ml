@@ -89,6 +89,235 @@ module _ (* Basic test *) = struct
   ;;
 end
 
+(* This test uses multiple different clocks to drive a simple hardcaml fifo, and tried to
+   show a bug in the event driven simulator. That issue was seemingly something else
+   related to the old implementation of async fifos, but is kept here as a general test
+   for the simulator. *)
+module Make_fifo_test (X : sig
+  val rd_clk : int
+  val wr_clk : int
+  val tb_clk : int
+end) =
+struct
+  open X
+
+  module Fifo = struct
+    module Hierarchy_fifo = struct
+      module I = struct
+        type 'a t =
+          { clock : 'a
+          ; clear : 'a
+          ; wr : 'a
+          ; rd : 'a
+          ; d : 'a [@bits 8]
+          }
+        [@@deriving sexp_of, hardcaml]
+      end
+
+      module O = struct
+        type 'a t =
+          { q : 'a [@bits 8]
+          ; empty : 'a
+          }
+        [@@deriving sexp_of, hardcaml]
+      end
+
+      let create scope (i : _ I.t) =
+        let fifo =
+          Hardcaml.Fifo.create
+            ~scope
+            ~showahead:true
+            ~capacity:16
+            ~clock:i.clock
+            ~clear:i.clear
+            ~wr:i.wr
+            ~d:i.d
+            ~rd:i.rd
+            ()
+        in
+        { O.q = fifo.q; empty = fifo.empty }
+      ;;
+
+      let hierarchical ?(instance = "hierarchy_fifo") scope =
+        let module H = Hierarchy.In_scope (I) (O) in
+        H.hierarchical ~instance ~scope ~name:"hierarchy_fifo" create
+      ;;
+    end
+
+    module I = struct
+      type 'a t =
+        { clocks : 'a array [@length 3]
+        ; clear : 'a
+        ; wr : 'a
+        ; rd : 'a
+        }
+      [@@deriving sexp_of, hardcaml]
+    end
+
+    module O = struct
+      type 'a t =
+        { q : 'a [@bits 8]
+        ; valid : 'a
+        }
+      [@@deriving sexp_of, hardcaml]
+    end
+
+    let create scope ({ clocks; clear; wr = _; rd } : _ I.t) =
+      let open Signal in
+      let clock_read = clocks.(rd_clk) in
+      let clock_write = clocks.(wr_clk) in
+      let spec_write = Reg_spec.create ~clock:clock_write ~clear () in
+      let read = wire 1 in
+      let wr1 = reg_fb spec_write ~width:1 ~f:(fun v -> ~:v) in
+      let wr2 = reg_fb spec_write ~width:1 ~f:(fun v -> ~:v) in
+      let wr = wr1 |: wr2 in
+      let fifo =
+        Hierarchy_fifo.hierarchical
+          scope
+          { clock = clock_read
+          ; clear
+          ; wr
+          ; d =
+              reg_fb
+                (Reg_spec.override spec_write ~clear_to:(one 8))
+                ~enable:wr
+                ~width:8
+                ~f:(fun d -> d +:. 1)
+          ; rd = read
+          }
+      in
+      read <== (rd &: ~:(fifo.empty));
+      { O.q = fifo.q; valid = ~:(fifo.empty) }
+    ;;
+
+    let hierarchical ?(instance = "fifo") scope =
+      let module H = Hierarchy.In_scope (I) (O) in
+      H.hierarchical ~instance ~scope ~name:"fifo" create
+    ;;
+  end
+
+  include Fifo
+  module Step = Hardcaml_step_testbench.Event_driven_sim.Make (I) (O)
+  module Logic = Hardcaml_event_driven_sim.Two_state_logic
+  module Evsim = Hardcaml_event_driven_sim.With_interface (Logic) (I) (O)
+  module Vcd = Hardcaml_event_driven_sim.Vcd.Make (Logic)
+  open Step.Let_syntax
+  open Hardcaml.Bits
+
+  let testbench _ =
+    let num_writes = 2 in
+    let reads = ref [] in
+    let get_read (o : Step.O_data.t) =
+      if to_bool o.before_edge.valid
+      then reads := to_int o.before_edge.q :: !reads
+      else ()
+    in
+    (* clear *)
+    let cycle_and_capture ?num_cycles i =
+      let%map o = Step.cycle ?num_cycles i in
+      get_read o
+    in
+    let%bind _ = Step.cycle ~num_cycles:2 { Step.input_hold with clear = vdd } in
+    let%bind _ = Step.cycle ~num_cycles:1 { Step.input_hold with clear = gnd } in
+    (* write *)
+    let%bind () =
+      Step.for_ 0 (num_writes - 1) (fun _ ->
+        cycle_and_capture { Step.input_hold with wr = vdd; rd = vdd })
+    in
+    (* read *)
+    let%bind () =
+      Step.for_ 0 (num_writes - 1) (fun _ ->
+        cycle_and_capture { Step.input_hold with wr = gnd; rd = vdd })
+    in
+    let%bind _ = cycle_and_capture { Step.input_hold with rd = gnd } in
+    let () =
+      let reads = List.rev !reads in
+      print_s [%message (reads : int list)];
+      [%test_result: int list] reads ~expect:(List.init num_writes ~f:(fun v -> v + 1))
+    in
+    return ()
+  ;;
+
+  let run () =
+    let { Evsim.processes; input; output; internal } =
+      let scope =
+        Scope.create ~flatten_design:true ~auto_label_hierarchical_ports:true ()
+      in
+      Evsim.create ~config:Hardcaml_event_driven_sim.Config.trace_all (hierarchical scope)
+    in
+    let step_process =
+      Step.process
+        ()
+        ~clock:input.clocks.(tb_clk).signal
+        ~inputs:(I.map input ~f:(fun i -> i.signal))
+        ~outputs:(O.map output ~f:(fun o -> o.signal))
+        ~testbench
+    in
+    let clocks =
+      Array.map input.clocks ~f:(fun clock -> Evsim.create_clock clock.signal ~time:5)
+      |> Array.to_list
+    in
+    let traces =
+      [ Event_driven_sim.Simulator.Debug.print_signal "out.q" output.q.signal
+      ; Event_driven_sim.Simulator.Debug.print_signal "out.valid" output.valid.signal
+        (* ; Event_driven_sim.Simulator.Debug.print_signal "clock" input.clocks.(0).signal *)
+      ]
+    in
+    let vcd =
+      Option.map (Sys.getenv "EXPECT_TEST_WAVEFORM") ~f:(fun _ ->
+        Vcd.create (Stdio.Out_channel.create "test_showahead_fifo.vcd") internal)
+    in
+    let simulator =
+      Event_simulator.create
+        (step_process
+         :: (clocks
+             @ traces
+             @ processes
+             @ (Option.map vcd ~f:Vcd.processes |> Option.value ~default:[])))
+    in
+    Option.iter vcd ~f:(fun vcd -> Vcd.attach_to_simulator vcd simulator);
+    Event_simulator.run ~time_limit:100 simulator
+  ;;
+
+  let%expect_test "" =
+    run ();
+    [%expect
+      {|
+    t=0 out.valid=1
+    t=5 out.valid=0
+    t=35 out.q=00000001
+    t=35 out.valid=1
+    t=45 out.q=00000000
+    t=45 out.valid=0
+    t=55 out.q=00000010
+    t=55 out.valid=1
+    t=65 out.q=00000000
+    t=65 out.valid=0
+    t=75 out.q=00000011
+    t=75 out.valid=1
+    (reads (1 2)) |}]
+  ;;
+end
+
+module _ = struct
+  let () =
+    for i = 0 to 2 do
+      for j = 0 to 2 do
+        for k = 0 to 2 do
+          let module _ =
+            Make_fifo_test (struct
+              let rd_clk = i
+              let wr_clk = j
+              let tb_clk = k
+            end)
+          in
+          ()
+        done
+      done
+    done
+  ;;
+end
+
 module _ (* Multiple spawned things *) = struct
   let test_multi_spawns () =
     let module Test = Send_and_receive_testbench in

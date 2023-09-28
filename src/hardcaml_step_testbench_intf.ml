@@ -125,6 +125,7 @@ module type S_cyclesim = sig
       and returns None. Otherwise it will continue until the testbech completes. *)
   val run_with_timeout
     :  ?input_default:Bits.t I.t (** default is [input_hold] *)
+    -> ?update_children_after_finish:bool (** default is [false] *)
     -> ?show_steps:bool (** default is [false] *)
     -> ?timeout:int (** default is [None] *)
     -> unit
@@ -136,6 +137,7 @@ module type S_cyclesim = sig
   val run_until_finished
     :  ?input_default:Bits.t I.t (** default is [input_hold] *)
     -> ?show_steps:bool (** default is [false] *)
+    -> ?update_children_after_finish:bool (** default is [false] *)
     -> unit
     -> simulator:Simulator.t
     -> testbench:(O_data.t -> 'a t)
