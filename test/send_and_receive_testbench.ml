@@ -8,7 +8,7 @@ module Source = struct
     ; first : 'a
     ; last : 'a
     }
-  [@@deriving sexp_of, hardcaml]
+  [@@deriving hardcaml]
 end
 
 module I = struct
@@ -16,11 +16,11 @@ module I = struct
     { clk : 'a
     ; source : 'a Source.t [@rtlprefix "i_"]
     }
-  [@@deriving sexp_of, hardcaml]
+  [@@deriving hardcaml]
 end
 
 module O = struct
-  type 'a t = { source : 'a Source.t [@rtlprefix "o_"] } [@@deriving sexp_of, hardcaml]
+  type 'a t = { source : 'a Source.t [@rtlprefix "o_"] } [@@deriving hardcaml]
 end
 
 let make_circuit (i : Signal.t I.t) =

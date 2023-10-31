@@ -34,7 +34,7 @@ let%expect_test "input setting hierarchy" =
       { a : 'a [@bits 8]
       ; b : 'a [@bits 8]
       }
-    [@@deriving sexp_of, hardcaml]
+    [@@deriving hardcaml]
   end
   in
   let module Data_o = struct
@@ -179,11 +179,11 @@ let%expect_test "[run] - returns result as option, but only if ready" =
 
 let%expect_test "Spawn tasks sequentially which set the same input." =
   let module I = struct
-    type 'a t = { d : 'a [@bits 8] } [@@deriving sexp_of, hardcaml]
+    type 'a t = { d : 'a [@bits 8] } [@@deriving hardcaml]
   end
   in
   let module O = struct
-    type 'a t = { q : 'a [@bits 8] } [@@deriving sexp_of, hardcaml]
+    type 'a t = { q : 'a [@bits 8] } [@@deriving hardcaml]
   end
   in
   let module Tb = Hardcaml_step_testbench.Cyclesim.Make (I) (O) in

@@ -17,7 +17,9 @@ module Make (Input_monad : Monad.S) = struct
       (module struct
         include T
 
-        let update_state _ _ = ()
+        let update_state ?prune:_ _ _ = ()
+        let prune_children _ = ()
+        let has_children _ = false
       end)
   ;;
 
@@ -31,7 +33,13 @@ module Make (Input_monad : Monad.S) = struct
   ;;
 
   let output (type i o) (T (module T) : (i, o) t) input = T.(output t) input
-  let update_state (type i o) (T (module T) : (i, o) t) input = T.(update_state t) input
+
+  let update_state ?prune (type i o) (T (module T) : (i, o) t) input =
+    T.update_state ?prune T.t input
+  ;;
+
+  let prune_children (type i o) (T (module T) : (i, o) t) = T.(prune_children t)
+  let has_children (type i o) (T (module T) : (i, o) t) = T.(has_children t)
 
   let run_with_inputs t is =
     List.fold is ~init:[] ~f:(fun os i ->
@@ -57,7 +65,7 @@ module Make (Input_monad : Monad.S) = struct
     let rec loop input =
       if show_steps then Stdio.print_s [%message "" ~step_number:(!step_number : int)];
       Int.incr step_number;
-      update_state t input;
+      update_state ~prune:(!step_number % 1000 = 0) t input;
       let output = output t input in
       let%bind.Input_monad next_input = next_input output in
       match next_input with
@@ -84,13 +92,20 @@ module Make (Input_monad : Monad.S) = struct
         let t = t1, t2
         let created_at = [%here]
 
-        let update_state ((t1, t2) : t) input =
+        let update_state ?prune ((t1, t2) : t) input =
           let b = output t1 input in
-          update_state t1 input;
-          update_state t2 b
+          update_state ?prune t1 input;
+          update_state ?prune t2 b
         ;;
 
         let output (t1, t2) input = output t2 (output t1 input)
+
+        let prune_children (t1, t2) =
+          prune_children t1;
+          prune_children t2
+        ;;
+
+        let has_children (t1, t2) = has_children t1 || has_children t2
       end)
   ;;
 
@@ -110,7 +125,9 @@ module Make (Input_monad : Monad.S) = struct
         let t = T.t
         let created_at = [%here]
         let output t i1 = T.output t (f i1)
-        let update_state t i1 = T.update_state t (f i1)
+        let update_state ?prune t i1 = T.update_state ?prune t (f i1)
+        let prune_children t = T.prune_children t
+        let has_children t = T.has_children t
       end)
   ;;
 
@@ -130,7 +147,9 @@ module Make (Input_monad : Monad.S) = struct
         let t = T.t
         let created_at = [%here]
         let output t i = f (T.output t i)
-        let update_state t i = T.update_state t i
+        let update_state ?prune t i = T.update_state ?prune t i
+        let prune_children t = T.prune_children t
+        let has_children t = T.has_children t
       end)
   ;;
 
@@ -181,7 +200,9 @@ module Make (Input_monad : Monad.S) = struct
         let t = ref Output.undefined
         let created_at = [%here]
         let output t _ = !t
-        let update_state t b = t := b
+        let update_state ?prune:_ t b = t := b
+        let prune_children _ = ()
+        let has_children _ = false
       end)
   ;;
 
@@ -211,7 +232,13 @@ module Make (Input_monad : Monad.S) = struct
           let sexp_of_t t = [%message "Flip_flop_with_load_enable" ~_:(t : t)]
           let created_at = [%here]
           let output t _ = !t
-          let update_state t { Input.input; load_enable } = if load_enable then t := input
+
+          let update_state ?prune:_ t { Input.input; load_enable } =
+            if load_enable then t := input
+          ;;
+
+          let prune_children _ = ()
+          let has_children _ = false
         end)
     ;;
   end
@@ -250,9 +277,12 @@ module Make (Input_monad : Monad.S) = struct
           let created_at = [%here]
           let output t _ = !t
 
-          let update_state t { Input.input; load_enable; reset } =
+          let update_state ?prune:_ t { Input.input; load_enable; reset } =
             if reset then t := false else if load_enable then t := input
           ;;
+
+          let prune_children _ = ()
+          let has_children _ = false
         end)
     ;;
   end

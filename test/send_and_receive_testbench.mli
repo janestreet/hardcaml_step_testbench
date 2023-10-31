@@ -8,7 +8,7 @@ module Source : sig
     ; first : 'a
     ; last : 'a
     }
-  [@@deriving sexp_of, hardcaml]
+  [@@deriving hardcaml]
 end
 
 module I : sig
@@ -16,11 +16,11 @@ module I : sig
     { clk : 'a
     ; source : 'a Source.t
     }
-  [@@deriving sexp_of, hardcaml]
+  [@@deriving hardcaml]
 end
 
 module O : sig
-  type 'a t = { source : 'a Source.t } [@@deriving sexp_of, hardcaml]
+  type 'a t = { source : 'a Source.t } [@@deriving hardcaml]
 end
 
 val make_circuit : Signal.t I.t -> Signal.t O.t

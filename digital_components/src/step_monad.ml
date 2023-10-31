@@ -187,8 +187,20 @@ module Make (Input_monad : Monad.S) = struct
 
     let create ~start ~output = { state = Unstarted start; children = []; output }
 
+    (* Each component tracks all of their children even if they are "finished". To improve
+       performance we periodically traverse through the tree of children to prune the ones
+       that are finished. *)
+    let prune_children (type i o) (t : (i, o) t) =
+      t.children
+        <- List.filter t.children ~f:(fun (Child.T child) ->
+             Component.prune_children child.component;
+             Component.has_children child.component
+             || Option.is_none (Event.value child.child_finished))
+    ;;
+
     let update_state
       (type i o)
+      ?(prune = false)
       ~update_children_after_finish
       (t : (i, o) t)
       (current_input : i)
@@ -226,6 +238,7 @@ module Make (Input_monad : Monad.S) = struct
         | Running continuation -> continue continuation current_input
         | Unstarted start -> step (start current_input) Empty
       in
+      if prune then prune_children t;
       t.state <- state;
       t.output
         <- List.fold t.children ~init:output ~f:(fun output (Child.T child) ->
@@ -268,7 +281,13 @@ module Make (Input_monad : Monad.S) = struct
           ;;
 
           let output (t : t) _ = t.output
-          let update_state = Runner.update_state ~update_children_after_finish
+
+          let update_state ?prune =
+            Runner.update_state ?prune ~update_children_after_finish
+          ;;
+
+          let prune_children = Runner.prune_children
+          let has_children (t : t) = not (List.is_empty t.children)
         end)
     in
     component, component_finished

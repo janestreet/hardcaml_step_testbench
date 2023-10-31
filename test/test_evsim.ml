@@ -9,11 +9,11 @@ module _ (* Basic test *) = struct
       { clock : 'a
       ; enable : 'a
       }
-    [@@deriving sexp_of, hardcaml]
+    [@@deriving hardcaml]
   end
 
   module O = struct
-    type 'a t = { q : 'a [@bits 8] } [@@deriving sexp_of, hardcaml]
+    type 'a t = { q : 'a [@bits 8] } [@@deriving hardcaml]
   end
 
   let create ({ clock; enable } : _ I.t) =
@@ -111,7 +111,7 @@ struct
           ; rd : 'a
           ; d : 'a [@bits 8]
           }
-        [@@deriving sexp_of, hardcaml]
+        [@@deriving hardcaml]
       end
 
       module O = struct
@@ -119,7 +119,7 @@ struct
           { q : 'a [@bits 8]
           ; empty : 'a
           }
-        [@@deriving sexp_of, hardcaml]
+        [@@deriving hardcaml]
       end
 
       let create scope (i : _ I.t) =
@@ -151,7 +151,7 @@ struct
         ; wr : 'a
         ; rd : 'a
         }
-      [@@deriving sexp_of, hardcaml]
+      [@@deriving hardcaml]
     end
 
     module O = struct
@@ -159,7 +159,7 @@ struct
         { q : 'a [@bits 8]
         ; valid : 'a
         }
-      [@@deriving sexp_of, hardcaml]
+      [@@deriving hardcaml]
     end
 
     let create scope ({ clocks; clear; wr = _; rd } : _ I.t) =
@@ -374,7 +374,7 @@ module _ (* Test different ways outputs are affected *) = struct
       ; clear : 'a
       ; d : 'a
       }
-    [@@deriving sexp_of, hardcaml]
+    [@@deriving hardcaml]
   end
 
   module O = struct
@@ -384,7 +384,7 @@ module _ (* Test different ways outputs are affected *) = struct
       ; registered : 'a
       ; comb_logic_after_register : 'a
       }
-    [@@deriving sexp_of, hardcaml]
+    [@@deriving hardcaml]
   end
 
   (* This tries to model the various ways inputs, registers, comb logic etc affect outputs
