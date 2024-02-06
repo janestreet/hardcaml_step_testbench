@@ -6,9 +6,10 @@ open Hardcaml_waveterm
    modified by the hardware model by inserting a word count within the upper 16 bits.
    The received packet is shown. *)
 let%expect_test "testbench" =
-  let open Send_and_receive_testbench.Make (Hardcaml_step_testbench.Cyclesim) in
+  let open
+    Send_and_receive_testbench.Make (Hardcaml_step_testbench.Functional.Cyclesim.Monads) in
   let module Tb =
-    Hardcaml_step_testbench.Cyclesim.Make
+    Hardcaml_step_testbench.Functional.Cyclesim.Make
       (Send_and_receive_testbench.I)
       (Send_and_receive_testbench.O)
   in
@@ -48,7 +49,7 @@ let%expect_test "input setting hierarchy" =
     include Hardcaml.Interface.Make (T)
   end
   in
-  let module Tb = Hardcaml_step_testbench.Cyclesim.Make (Data) (Data_o) in
+  let module Tb = Hardcaml_step_testbench.Functional.Cyclesim.Make (Data) (Data_o) in
   let module Simulator = Cyclesim.With_interface (Data) (Data_o) in
   let simulator = Simulator.create Fn.id in
   let open! Tb.Let_syntax in
@@ -123,7 +124,7 @@ let%expect_test "input setting hierarchy" =
 
 let%expect_test "[run] - returns result as option, but only if ready" =
   let module Tb =
-    Hardcaml_step_testbench.Cyclesim.Make (Interface.Empty) (Interface.Empty)
+    Hardcaml_step_testbench.Functional.Cyclesim.Make (Interface.Empty) (Interface.Empty)
   in
   let module Simulator = Cyclesim.With_interface (Interface.Empty) (Interface.Empty) in
   let simulator = Simulator.create Fn.id in
@@ -186,7 +187,7 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
     type 'a t = { q : 'a [@bits 8] } [@@deriving hardcaml]
   end
   in
-  let module Tb = Hardcaml_step_testbench.Cyclesim.Make (I) (O) in
+  let module Tb = Hardcaml_step_testbench.Functional.Cyclesim.Make (I) (O) in
   let module Simulator = Cyclesim.With_interface (I) (O) in
   let test normal_spawn =
     let simulator = Simulator.create (fun (x : _ I.t) -> { O.q = x.d }) in
@@ -229,7 +230,7 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
     │               ││────────┴───────────────┴───────┴───────┴──────────│
     │               ││                                                   │
     └───────────────┘└───────────────────────────────────────────────────┘
-    ea145f8725760bebef5a25a217e174f7 |}];
+    a8fdb200e2f8f0bcfadf037cdab1139d |}];
   test false;
   [%expect
     {|
@@ -242,12 +243,12 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
     │               ││────────┴───────────────┴───────┴───────┴──────────│
     │               ││                                                   │
     └───────────────┘└───────────────────────────────────────────────────┘
-    ea145f8725760bebef5a25a217e174f7 |}]
+    a8fdb200e2f8f0bcfadf037cdab1139d |}]
 ;;
 
 let%expect_test "Timeout works as expected" =
   let module Tb =
-    Hardcaml_step_testbench.Cyclesim.Make
+    Hardcaml_step_testbench.Functional.Cyclesim.Make
       (Send_and_receive_testbench.I)
       (Send_and_receive_testbench.O)
   in

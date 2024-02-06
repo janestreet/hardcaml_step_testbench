@@ -1,3 +1,6 @@
-(library (name digital_components)
+(library
+ (name digital_components)
  (public_name hardcaml_step_testbench.digital_components)
- (libraries base stdio) (preprocess (pps ppx_jane)))
+ (libraries base stdio)
+ (preprocess
+  (pps ppx_jane)))

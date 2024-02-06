@@ -31,9 +31,9 @@ let make_circuit (i : Signal.t I.t) =
   { O.source = { i.source with data = count @: select i.source.data 15 0 } }
 ;;
 
-module Make (Monads : Hardcaml_step_testbench.Api.Monads) = struct
-  module Tb_source = Hardcaml_step_testbench.Api.Make (Monads) (Source) (Source)
-  module Tb = Hardcaml_step_testbench.Api.Make (Monads) (I) (O)
+module Make (Monads : Hardcaml_step_testbench.Step_monads.S) = struct
+  module Tb_source = Hardcaml_step_testbench.Functional.Make (Monads) (Source) (Source)
+  module Tb = Hardcaml_step_testbench.Functional.Make (Monads) (I) (O)
 
   let rec send_data ~first ~num_words _ : unit Tb_source.t =
     let open Tb_source.Let_syntax in

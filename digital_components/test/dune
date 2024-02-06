@@ -1,3 +1,5 @@
-(library (name digital_components_test)
+(library
+ (name digital_components_test)
  (libraries digital_components expect_test_helpers_core)
- (preprocess (pps ppx_jane)))
+ (preprocess
+  (pps ppx_jane)))

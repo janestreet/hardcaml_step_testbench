@@ -72,8 +72,8 @@ module Make (Input_monad : Monad.S) = struct
 
   let wait_for (event : _ Event.t) ~output =
     let rec loop () =
-      (* We use [thunk] to delay checking [Event.value] until until the last possible
-         moment, when the computation is being evaluated.  This can avoid an unnecessary
+      (* We use [thunk] to delay checking [Event.value] until the last possible moment,
+         when the computation is being evaluated. This can avoid an unnecessary
          [next_step]. *)
       thunk (fun () ->
         match Event.value event with
