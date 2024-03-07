@@ -8,7 +8,7 @@ threads to complete.
 
 Synchronisation between threads is performed at every clock cycle.
 
-There are seperate versions for the `cyclesim` and `event_driven_sim` simulators.
+There are separate versions for the `cyclesim` and `event_driven_sim` simulators.
 
 Further, two styles of writing testbenches are provided: functional and imperative.
 
