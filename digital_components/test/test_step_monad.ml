@@ -59,7 +59,8 @@ let%expect_test "[return]" =
     (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
-      (output   ()))) |}]
+      (output   ())))
+    |}]
 ;;
 
 let%expect_test "[bind]" =
@@ -72,7 +73,8 @@ let%expect_test "[bind]" =
     (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
-      (output   ()))) |}]
+      (output   ())))
+    |}]
 ;;
 
 let%expect_test "[next_step]" =
@@ -84,7 +86,8 @@ let%expect_test "[next_step]" =
     (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
-      (output   ()))) |}]
+      (output   ())))
+    |}]
 ;;
 
 let%expect_test "[spawn] + [wait]" =
@@ -103,7 +106,8 @@ let%expect_test "[spawn] + [wait]" =
         ((state (Finished ()))
          (children ())
          (output   ())))))
-      (output ()))) |}]
+      (output ())))
+    |}]
 ;;
 
 let%expect_test "[spawn] + [wait] with child taking a step" =
@@ -123,7 +127,8 @@ let%expect_test "[spawn] + [wait] with child taking a step" =
         ((state (Finished ()))
          (children ())
          (output   ())))))
-      (output ()))) |}]
+      (output ())))
+    |}]
 ;;
 
 let%expect_test "[for_]" =
@@ -140,7 +145,8 @@ let%expect_test "[for_]" =
     (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
-      (output   ()))) |}];
+      (output   ())))
+    |}];
   test 0 0;
   [%expect
     {|
@@ -150,7 +156,8 @@ let%expect_test "[for_]" =
     (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
-      (output   ()))) |}];
+      (output   ())))
+    |}];
   test 0 1;
   [%expect
     {|
@@ -162,7 +169,8 @@ let%expect_test "[for_]" =
     (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
-      (output   ()))) |}];
+      (output   ())))
+    |}];
   test 0 2;
   [%expect
     {|
@@ -176,7 +184,8 @@ let%expect_test "[for_]" =
     (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
-      (output   ()))) |}]
+      (output   ())))
+    |}]
 ;;
 
 let%expect_test "parallel components" =
@@ -305,7 +314,8 @@ let%expect_test "parallel components" =
          ((state (Finished ()))
           (children ())
           (output   ())))))
-      (output ()))) |}]
+      (output ())))
+    |}]
 ;;
 
 let%expect_test "[delay]" =
@@ -321,7 +331,8 @@ let%expect_test "[delay]" =
     (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
-      (output   ()))) |}]
+      (output   ())))
+    |}]
 ;;
 
 let%expect_test "[repeat]" =
@@ -355,7 +366,8 @@ let%expect_test "[repeat]" =
     (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
      ((state (Finished ()))
       (children ())
-      (output   ()))) |}]
+      (output   ())))
+    |}]
 ;;
 
 let%expect_test "[spawn] + [for_]" =
@@ -387,7 +399,8 @@ let%expect_test "[spawn] + [for_]" =
         ((state (Finished ()))
          (children ())
          (output   ())))))
-      (output ()))) |}]
+      (output ())))
+    |}]
 ;;
 
 let%expect_test "output counter" =
@@ -411,7 +424,8 @@ let%expect_test "output counter" =
      ((input ()) (output 1))
      ((input ()) (output 2))
      ((input ()) (output 3))
-     ((input ()) (output 4))) |}]
+     ((input ()) (output 4)))
+    |}]
 ;;
 
 let%expect_test "add1" =
@@ -435,7 +449,8 @@ let%expect_test "add1" =
      ((input 1) (output 2))
      ((input 2) (output 3))
      ((input 3) (output 4))
-     ((input 4) (output 5))) |}]
+     ((input 4) (output 5)))
+    |}]
 ;;
 
 let%expect_test "child returning a value" =
@@ -469,7 +484,8 @@ let%expect_test "child returning a value" =
       (children ((
         lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
         ((state (Finished 17)) (children ()) (output 17)))))
-      (output ()))) |}]
+      (output ())))
+    |}]
 ;;
 
 let%expect_test "parent runs before child" =
@@ -506,7 +522,8 @@ let%expect_test "parent runs before child" =
         ((state (Running (Bind <fun> (Bind <fun> (Bind <fun> Empty)))))
          (children ())
          (output   ())))))
-      (output ()))) |}]
+      (output ())))
+    |}]
 ;;
 
 let%expect_test "finished child doesn't contribute to output" =
@@ -554,7 +571,8 @@ let%expect_test "finished child doesn't contribute to output" =
     (step_number 4)
     delay
     (step_number 5)
-    after |}]
+    after
+    |}]
 ;;
 
 let%expect_test "grand-child does not run when child terminates" =
@@ -612,36 +630,39 @@ let%expect_test "grand-child does not run when child terminates" =
      the child terminates at after 1 clock cycle.
   *)
   test ~update_children_after_finish:false ~number_of_cycles_in_parent:1;
-  [%expect {|
-    Printing from grandchild |}];
+  [%expect {| Printing from grandchild |}];
   test ~update_children_after_finish:false ~number_of_cycles_in_parent:2;
   [%expect {|
     Printing from grandchild
-    Printing from grandchild |}];
+    Printing from grandchild
+    |}];
   test ~update_children_after_finish:false ~number_of_cycles_in_parent:3;
   [%expect {|
     Printing from grandchild
-    Printing from grandchild |}];
+    Printing from grandchild
+    |}];
   test ~update_children_after_finish:false ~number_of_cycles_in_parent:10;
   [%expect {|
     Printing from grandchild
-    Printing from grandchild |}];
+    Printing from grandchild
+    |}];
   (* The tests belows requires that the grandchild stays alive after the intermediate
      child terminates.
   *)
   test ~update_children_after_finish:true ~number_of_cycles_in_parent:1;
-  [%expect {|
-    Printing from grandchild |}];
+  [%expect {| Printing from grandchild |}];
   test ~update_children_after_finish:true ~number_of_cycles_in_parent:2;
   [%expect {|
     Printing from grandchild
-    Printing from grandchild |}];
+    Printing from grandchild
+    |}];
   test ~update_children_after_finish:true ~number_of_cycles_in_parent:3;
   [%expect
     {|
     Printing from grandchild
     Printing from grandchild
-    Printing from grandchild |}];
+    Printing from grandchild
+    |}];
   test ~update_children_after_finish:true ~number_of_cycles_in_parent:5;
   [%expect
     {|
@@ -649,5 +670,6 @@ let%expect_test "grand-child does not run when child terminates" =
     Printing from grandchild
     Printing from grandchild
     Printing from grandchild
-    Printing from grandchild |}]
+    Printing from grandchild
+    |}]
 ;;

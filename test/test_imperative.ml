@@ -81,7 +81,8 @@ let%expect_test "" =
     │q              ││ 00         │02   │04   │07         │0A            │
     │               ││────────────┴─────┴─────┴───────────┴───────────   │
     │               ││                                                   │
-    └───────────────┘└───────────────────────────────────────────────────┘ |}]
+    └───────────────┘└───────────────────────────────────────────────────┘
+    |}]
 ;;
 
 (* Event driven sim *)
@@ -158,14 +159,15 @@ module _ (* Basic test *) = struct
     run ();
     [%expect
       {|
-    (q ("Event_simulator.(!!) (output.q).signal" 00000000))
-    ("Stepping 1" ("time ()" 5))
-    (q ("Event_simulator.(!!) (output.q).signal" 00000001))
-    ("Stepping 2" ("time ()" 15))
-    ("Stepping 3" ("time ()" 25))
-    ("Stepping 4" ("time ()" 35))
-    (q ("Event_simulator.(!!) (output.q).signal" 00000010))
-    ("Stepping 5" ("time ()" 45))
-    (q ("Event_simulator.(!!) (output.q).signal" 00000011)) |}]
+      (q ("Event_simulator.(!!) (output.q).signal" 00000000))
+      ("Stepping 1" ("time ()" 5))
+      (q ("Event_simulator.(!!) (output.q).signal" 00000001))
+      ("Stepping 2" ("time ()" 15))
+      ("Stepping 3" ("time ()" 25))
+      ("Stepping 4" ("time ()" 35))
+      (q ("Event_simulator.(!!) (output.q).signal" 00000010))
+      ("Stepping 5" ("time ()" 45))
+      (q ("Event_simulator.(!!) (output.q).signal" 00000011))
+      |}]
   ;;
 end

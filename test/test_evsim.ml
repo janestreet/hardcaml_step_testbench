@@ -77,15 +77,16 @@ module _ (* Basic test *) = struct
     run ();
     [%expect
       {|
-    (q ("Event_simulator.(!!) (output.q).signal" 00000000))
-    (q ("Event_simulator.(!!) (output.q).signal" 00000001))
-    ("Stepping 1" ("time ()" 10))
-    ("Stepping 2" ("time ()" 20))
-    ("Stepping 3" ("time ()" 30))
-    (q ("Event_simulator.(!!) (output.q).signal" 00000010))
-    ("Stepping 4" ("time ()" 40))
-    (q ("Event_simulator.(!!) (output.q).signal" 00000011))
-    ("Stepping 5" ("time ()" 50)) |}]
+      (q ("Event_simulator.(!!) (output.q).signal" 00000000))
+      (q ("Event_simulator.(!!) (output.q).signal" 00000001))
+      ("Stepping 1" ("time ()" 10))
+      ("Stepping 2" ("time ()" 20))
+      ("Stepping 3" ("time ()" 30))
+      (q ("Event_simulator.(!!) (output.q).signal" 00000010))
+      ("Stepping 4" ("time ()" 40))
+      (q ("Event_simulator.(!!) (output.q).signal" 00000011))
+      ("Stepping 5" ("time ()" 50))
+      |}]
   ;;
 end
 
@@ -283,19 +284,20 @@ struct
     run ();
     [%expect
       {|
-    t=0 out.valid=1
-    t=5 out.valid=0
-    t=35 out.q=00000001
-    t=35 out.valid=1
-    t=45 out.q=00000000
-    t=45 out.valid=0
-    t=55 out.q=00000010
-    t=55 out.valid=1
-    t=65 out.q=00000000
-    t=65 out.valid=0
-    t=75 out.q=00000011
-    t=75 out.valid=1
-    (reads (1 2)) |}]
+      t=0 out.valid=1
+      t=0 out.valid=0
+      t=35 out.q=00000001
+      t=35 out.valid=1
+      t=45 out.q=00000000
+      t=45 out.valid=0
+      t=55 out.q=00000010
+      t=55 out.valid=1
+      t=65 out.q=00000000
+      t=65 out.valid=0
+      t=75 out.q=00000011
+      t=75 out.valid=1
+      (reads (1 2))
+      |}]
   ;;
 end
 
@@ -365,7 +367,8 @@ module _ (* Multiple spawned things *) = struct
         00000000000000100000000000000100
         00000000000000110000000000000011
         00000000000001000000000000000010
-        00000000000001010000000000000001))) |}]
+        00000000000001010000000000000001)))
+      |}]
   ;;
 end
 
@@ -469,61 +472,62 @@ module _ (* Test different ways outputs are affected *) = struct
       Test.test ();
       [%expect
         {|
-      (o (
-        (before_edge (
-          (input_passed_thru         0)
-          (comb_logic_of_input_only  0)
-          (registered                0)
-          (comb_logic_after_register 0)))
-        (after_edge (
-          (input_passed_thru         0)
-          (comb_logic_of_input_only  0)
-          (registered                0)
-          (comb_logic_after_register 0)))))
-      (o (
-        (before_edge (
-          (input_passed_thru         1)
-          (comb_logic_of_input_only  0)
-          (registered                0)
-          (comb_logic_after_register 1)))
-        (after_edge (
-          (input_passed_thru         1)
-          (comb_logic_of_input_only  0)
-          (registered                1)
-          (comb_logic_after_register 0)))))
-      (o (
-        (before_edge (
-          (input_passed_thru         0)
-          (comb_logic_of_input_only  1)
-          (registered                1)
-          (comb_logic_after_register 0)))
-        (after_edge (
-          (input_passed_thru         0)
-          (comb_logic_of_input_only  1)
-          (registered                0)
-          (comb_logic_after_register 1)))))
-      (o (
-        (before_edge (
-          (input_passed_thru         1)
-          (comb_logic_of_input_only  0)
-          (registered                0)
-          (comb_logic_after_register 1)))
-        (after_edge (
-          (input_passed_thru         1)
-          (comb_logic_of_input_only  0)
-          (registered                1)
-          (comb_logic_after_register 0)))))
-      (o (
-        (before_edge (
-          (input_passed_thru         0)
-          (comb_logic_of_input_only  1)
-          (registered                1)
-          (comb_logic_after_register 0)))
-        (after_edge (
-          (input_passed_thru         0)
-          (comb_logic_of_input_only  1)
-          (registered                0)
-          (comb_logic_after_register 1))))) |}]
+        (o (
+          (before_edge (
+            (input_passed_thru         0)
+            (comb_logic_of_input_only  0)
+            (registered                0)
+            (comb_logic_after_register 0)))
+          (after_edge (
+            (input_passed_thru         0)
+            (comb_logic_of_input_only  0)
+            (registered                0)
+            (comb_logic_after_register 0)))))
+        (o (
+          (before_edge (
+            (input_passed_thru         1)
+            (comb_logic_of_input_only  0)
+            (registered                0)
+            (comb_logic_after_register 1)))
+          (after_edge (
+            (input_passed_thru         1)
+            (comb_logic_of_input_only  0)
+            (registered                1)
+            (comb_logic_after_register 0)))))
+        (o (
+          (before_edge (
+            (input_passed_thru         0)
+            (comb_logic_of_input_only  1)
+            (registered                1)
+            (comb_logic_after_register 0)))
+          (after_edge (
+            (input_passed_thru         0)
+            (comb_logic_of_input_only  1)
+            (registered                0)
+            (comb_logic_after_register 1)))))
+        (o (
+          (before_edge (
+            (input_passed_thru         1)
+            (comb_logic_of_input_only  0)
+            (registered                0)
+            (comb_logic_after_register 1)))
+          (after_edge (
+            (input_passed_thru         1)
+            (comb_logic_of_input_only  0)
+            (registered                1)
+            (comb_logic_after_register 0)))))
+        (o (
+          (before_edge (
+            (input_passed_thru         0)
+            (comb_logic_of_input_only  1)
+            (registered                1)
+            (comb_logic_after_register 0)))
+          (after_edge (
+            (input_passed_thru         0)
+            (comb_logic_of_input_only  1)
+            (registered                0)
+            (comb_logic_after_register 1)))))
+        |}]
     ;;
   end
 

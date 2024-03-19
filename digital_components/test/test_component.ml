@@ -29,14 +29,16 @@ let%expect_test "[and_], [or_]" =
     (false false false)
     (false true false)
     (true false false)
-    (true true true) |}];
+    (true true true)
+    |}];
   test or_;
   [%expect
     {|
     (false false false)
     (false true true)
     (true false true)
-    (true true true) |}]
+    (true true true)
+    |}]
 ;;
 
 let%expect_test "[map_input], [map_output]" =
@@ -50,14 +52,16 @@ let%expect_test "[map_input], [map_output]" =
     ((input  false)
      (output false))
     ((input  true)
-     (output true)) |}];
+     (output true))
+    |}];
   test (map_output not_ (module Data.Bool) ~f:not);
   [%expect
     {|
     ((input  false)
      (output false))
     ((input  true)
-     (output true)) |}]
+     (output true))
+    |}]
 ;;
 
 let%expect_test "[flip_flop]" =
@@ -65,27 +69,21 @@ let%expect_test "[flip_flop]" =
   let show_output t = print_s [%sexp (output t false : bool)] in
   show t;
   [%expect
-    {|
-    (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop false)) |}];
+    {| (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop false)) |}];
   show_output t;
-  [%expect {|
-    false |}];
+  [%expect {| false |}];
   update_state t true;
   show t;
   [%expect
-    {|
-    (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop true)) |}];
+    {| (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop true)) |}];
   show_output t;
-  [%expect {|
-    true |}];
+  [%expect {| true |}];
   update_state t false;
   show t;
   [%expect
-    {|
-    (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop false)) |}];
+    {| (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop false)) |}];
   show_output t;
-  [%expect {|
-    false |}]
+  [%expect {| false |}]
 ;;
 
 let%expect_test "[flip_flop_with_load_enable]" =
@@ -94,7 +92,8 @@ let%expect_test "[flip_flop_with_load_enable]" =
   [%expect
     {|
     (lib/hardcaml/digital_components/src/component.ml:LINE:COL
-     (Flip_flop_with_load_enable false)) |}];
+     (Flip_flop_with_load_enable false))
+    |}];
   run_with_inputs
     t
     (List.map
@@ -118,7 +117,8 @@ let%expect_test "[flip_flop_with_load_enable]" =
      ((input (
         (input       false)
         (load_enable true)))
-      (output false))) |}]
+      (output false)))
+    |}]
 ;;
 
 let%expect_test "[flip_flop_with_load_enable_and_reset]" =
@@ -127,7 +127,8 @@ let%expect_test "[flip_flop_with_load_enable_and_reset]" =
   [%expect
     {|
     (lib/hardcaml/digital_components/src/component.ml:LINE:COL
-     (Flip_flop_with_load_enable_and_reset false)) |}];
+     (Flip_flop_with_load_enable_and_reset false))
+    |}];
   run_with_inputs
     t
     (List.map
@@ -155,7 +156,8 @@ let%expect_test "[flip_flop_with_load_enable_and_reset]" =
         (input       false)
         (load_enable true)
         (reset       true)))
-      (output false))) |}]
+      (output false)))
+    |}]
 ;;
 
 let%expect_test "[sequence]" =
@@ -169,5 +171,6 @@ let%expect_test "[sequence]" =
      ((input true)  (output true))
      ((input false) (output true))
      ((input false) (output false))
-     ((input false) (output false))) |}]
+     ((input false) (output false)))
+    |}]
 ;;

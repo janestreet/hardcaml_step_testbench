@@ -26,7 +26,8 @@ let%expect_test "testbench" =
      00000000000000100000000000000100
      00000000000000110000000000000011
      00000000000001000000000000000010
-     00000000000001010000000000000001) |}]
+     00000000000001010000000000000001)
+    |}]
 ;;
 
 let%expect_test "input setting hierarchy" =
@@ -119,7 +120,8 @@ let%expect_test "input setting hierarchy" =
       ((a 4) (b 4))
       ((a 4) (b 4))
       ((a 4) (b 4))
-      ((a 4) (b 255)))) |}]
+      ((a 4) (b 255))))
+    |}]
 ;;
 
 let%expect_test "[run] - returns result as option, but only if ready" =
@@ -147,7 +149,8 @@ let%expect_test "[run] - returns result as option, but only if ready" =
     (step_number 0)
     "testbench started"
     (step_number 1)
-    (result ()) |}];
+    (result ())
+    |}];
   test 3;
   [%expect
     {|
@@ -155,7 +158,8 @@ let%expect_test "[run] - returns result as option, but only if ready" =
     "testbench started"
     (step_number 1)
     (step_number 2)
-    (result ()) |}];
+    (result ())
+    |}];
   test 4;
   [%expect
     {|
@@ -165,7 +169,8 @@ let%expect_test "[run] - returns result as option, but only if ready" =
     (step_number 2)
     (step_number 3)
     "testbench finished"
-    (result (Finished)) |}];
+    (result (Finished))
+    |}];
   test 5;
   [%expect
     {|
@@ -175,7 +180,8 @@ let%expect_test "[run] - returns result as option, but only if ready" =
     (step_number 2)
     (step_number 3)
     "testbench finished"
-    (result (Finished)) |}]
+    (result (Finished))
+    |}]
 ;;
 
 let%expect_test "Spawn tasks sequentially which set the same input." =
@@ -230,7 +236,8 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
     │               ││────────┴───────────────┴───────┴───────┴──────────│
     │               ││                                                   │
     └───────────────┘└───────────────────────────────────────────────────┘
-    a8fdb200e2f8f0bcfadf037cdab1139d |}];
+    a8fdb200e2f8f0bcfadf037cdab1139d
+    |}];
   test false;
   [%expect
     {|
@@ -243,7 +250,8 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
     │               ││────────┴───────────────┴───────┴───────┴──────────│
     │               ││                                                   │
     └───────────────┘└───────────────────────────────────────────────────┘
-    a8fdb200e2f8f0bcfadf037cdab1139d |}]
+    a8fdb200e2f8f0bcfadf037cdab1139d
+    |}]
 ;;
 
 let%expect_test "Timeout works as expected" =
