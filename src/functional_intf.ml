@@ -49,7 +49,14 @@ module type S = sig
     ('a, 'b) Step_monad.Component_finished.t Step_monad.Event.t
 
   (** Launch a new task within the current simulation step. *)
-  val spawn : (O_data.t -> 'a t) -> ('a, I_data.t) finished_event t
+  val spawn
+    :  ?update_children_after_finish:bool
+         (** When [update_children_after_finish] is set to true. children tasks that have
+             finished will still be updated. This will notably trigger an update on
+             nested spawns.
+         *)
+    -> (O_data.t -> 'a t)
+    -> ('a, I_data.t) finished_event t
 
   (** [merge_inputs ~parent ~child] merges the child inputs into the parent.  If a child
       input is [empty], the parent's value is used. *)
@@ -57,9 +64,13 @@ module type S = sig
 
   (** Launch a task from a testbench with a [cycle] function taking ['i] to ['o].  The
       [inputs] and [outputs] arguments should construct [I_data.t] and [O_data.t] from the
-      types of the child testbench. *)
+      types of the child testbench.
+
+      See documentation of [spawn] for an explaination of [update_children_after_finish].
+  *)
   val spawn_io
-    :  inputs:(parent:'i -> child:I_data.t -> 'i)
+    :  ?update_children_after_finish:bool
+    -> inputs:(parent:'i -> child:I_data.t -> 'i)
     -> outputs:('o -> Bits.t O.t)
     -> (O_data.t -> 'a t)
     -> (('a, I_data.t) finished_event, 'o Before_and_after_edge.t, 'i) Step_monad.t

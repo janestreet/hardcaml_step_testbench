@@ -71,7 +71,7 @@ let%expect_test "input setting hierarchy" =
     List.init levels ~f:(fun level ->
       Array.init (1 lsl levels) ~f:(fun index ->
         let x = Bits.of_int ~width:levels index in
-        if Bits.(bit x level |> to_int) = 1
+        if Bits.(x.:(level) |> to_int) = 1
         then Bits.of_int ~width (level + 1)
         else Bits.empty))
   in

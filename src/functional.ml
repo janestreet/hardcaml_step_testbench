@@ -50,12 +50,12 @@ module Make (Monads : Step_monads.S) (I : Interface.S) (O : Interface.S) = struc
   type 'a t = ('a, O_data.t, I_data.t) Step_monad.t
 
   include Monad.Make (struct
-    type nonrec 'a t = 'a t
+      type nonrec 'a t = 'a t
 
-    let return x = Step_monad.return x
-    let map = `Custom Step_monad.map
-    let bind = Step_monad.bind
-  end)
+      let return x = Step_monad.return x
+      let map = `Custom Step_monad.map
+      let bind = Step_monad.bind
+    end)
 
   open Let_syntax
 
@@ -82,8 +82,9 @@ module Make (Monads : Step_monads.S) (I : Interface.S) (O : Interface.S) = struc
     return { Step_monad.Component_finished.output = I_data.undefined; result }
   ;;
 
-  let spawn_io ~inputs ~outputs task =
+  let spawn_io ?update_children_after_finish ~inputs ~outputs task =
     Step_monad.spawn
+      ?update_children_after_finish
       [%here]
       ~input:(module O_data)
       ~output:(module I_data)
@@ -92,7 +93,9 @@ module Make (Monads : Step_monads.S) (I : Interface.S) (O : Interface.S) = struc
       ~start:(start task)
   ;;
 
-  let spawn task = spawn_io task ~outputs:Fn.id ~inputs:merge_inputs
+  let spawn ?update_children_after_finish task =
+    spawn_io ?update_children_after_finish task ~outputs:Fn.id ~inputs:merge_inputs
+  ;;
 
   let wait_for (event : _ finished_event) =
     let%bind x = Step_monad.wait_for event ~output:I_data.undefined in

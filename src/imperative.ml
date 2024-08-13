@@ -19,12 +19,12 @@ module Make (Monads : Step_monads.S) = struct
   type 'a t = ('a, No_data.t, No_data.t) Step_monad.t
 
   include Monad.Make (struct
-    type nonrec 'a t = 'a t
+      type nonrec 'a t = 'a t
 
-    let return x = Step_monad.return x
-    let map = `Custom Step_monad.map
-    let bind = Step_monad.bind
-  end)
+      let return x = Step_monad.return x
+      let map = `Custom Step_monad.map
+      let bind = Step_monad.bind
+    end)
 
   open Let_syntax
 

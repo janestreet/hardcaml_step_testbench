@@ -1,5 +1,7 @@
 (library
  (name digital_components_test)
- (libraries digital_components expect_test_helpers_core)
+ (libraries digital_components
+   expect_test_helpers_core.expect_test_helpers_base expect_test_helpers_core
+   stdio)
  (preprocess
   (pps ppx_jane)))

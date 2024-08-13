@@ -192,10 +192,10 @@ module Make (Input_monad : Monad.S) = struct
        that are finished. *)
     let prune_children (type i o) (t : (i, o) t) =
       t.children
-        <- List.filter t.children ~f:(fun (Child.T child) ->
-             Component.prune_children child.component;
-             Component.has_children child.component
-             || Option.is_none (Event.value child.child_finished))
+      <- List.filter t.children ~f:(fun (Child.T child) ->
+           Component.prune_children child.component;
+           Component.has_children child.component
+           || Option.is_none (Event.value child.child_finished))
     ;;
 
     let update_state
@@ -218,12 +218,12 @@ module Make (Input_monad : Monad.S) = struct
         | Thunk f -> step (f ()) continuation
         | Spawn { child; child_finished; child_input; include_child_output } ->
           t.children
-            <- Child.create
-                 ~child_finished
-                 ~child_input
-                 ~component:child
-                 ~include_child_output
-               :: t.children;
+          <- Child.create
+               ~child_finished
+               ~child_input
+               ~component:child
+               ~include_child_output
+             :: t.children;
           continue continuation ()
       and continue : type a. (a, i, o) Continuation.t -> a -> o * (i, o) State.t =
         fun continuation a ->
@@ -241,15 +241,15 @@ module Make (Input_monad : Monad.S) = struct
       if prune then prune_children t;
       t.state <- state;
       t.output
-        <- List.fold t.children ~init:output ~f:(fun output (Child.T child) ->
-             if Option.is_some (Event.value child.child_finished)
-                && not update_children_after_finish
-             then output
-             else (
-               let child_input = child.child_input ~parent:current_input in
-               Component.update_state child.component child_input;
-               let child_output = Component.output child.component child_input in
-               child.include_child_output ~parent:output ~child:child_output))
+      <- List.fold t.children ~init:output ~f:(fun output (Child.T child) ->
+           if Option.is_some (Event.value child.child_finished)
+              && not update_children_after_finish
+           then output
+           else (
+             let child_input = child.child_input ~parent:current_input in
+             Component.update_state child.component child_input;
+             let child_output = Component.output child.component child_input in
+             child.include_child_output ~parent:output ~child:child_output))
     ;;
   end
 

@@ -95,10 +95,10 @@ end
    related to the old implementation of async fifos, but is kept here as a general test
    for the simulator. *)
 module Make_fifo_test (X : sig
-  val rd_clk : int
-  val wr_clk : int
-  val tb_clk : int
-end) =
+    val rd_clk : int
+    val wr_clk : int
+    val tb_clk : int
+  end) =
 struct
   open X
 
@@ -465,8 +465,8 @@ module _ (* Test different ways outputs are affected *) = struct
   ;;
 
   module Compare (Test : sig
-    val test : unit -> unit
-  end) =
+      val test : unit -> unit
+    end) =
   struct
     let%expect_test "basic tests " =
       Test.test ();
@@ -533,10 +533,10 @@ module _ (* Test different ways outputs are affected *) = struct
 
   (* Run both backends.  This will fail if they dont generate the same output values. *)
   module _ = Compare (struct
-    let test = test_cyclesim
-  end)
+      let test = test_cyclesim
+    end)
 
   module _ = Compare (struct
-    let test = test_evsim
-  end)
+      let test = test_evsim
+    end)
 end

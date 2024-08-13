@@ -1,6 +1,7 @@
 (library
  (name hardcaml_step_testbench)
  (public_name hardcaml_step_testbench)
- (libraries digital_components hardcaml hardcaml_event_driven_sim)
+ (libraries core digital_components hardcaml_event_driven_sim.kernel hardcaml
+   hardcaml_event_driven_sim)
  (preprocess
   (pps ppx_jane)))

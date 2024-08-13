@@ -12,6 +12,7 @@ build: [
 depends: [
   "ocaml" {>= "5.1.0"}
   "base"
+  "core"
   "hardcaml"
   "hardcaml_event_driven_sim"
   "ppx_jane"

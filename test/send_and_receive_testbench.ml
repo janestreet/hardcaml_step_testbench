@@ -28,7 +28,7 @@ let make_circuit (i : Signal.t I.t) =
   let reg_spec = Reg_spec.create () ~clock:i.clk in
   let enable = i.source.valid in
   let count = reg_fb reg_spec ~enable ~width:16 ~f:(fun d -> d +:. 1) in
-  { O.source = { i.source with data = count @: select i.source.data 15 0 } }
+  { O.source = { i.source with data = count @: i.source.data.:[15, 0] } }
 ;;
 
 module Make (Monads : Hardcaml_step_testbench.Step_monads.S) = struct
