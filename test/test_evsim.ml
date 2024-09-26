@@ -179,11 +179,8 @@ struct
           ; clear
           ; wr
           ; d =
-              reg_fb
-                (Reg_spec.override spec_write ~clear_to:(one 8))
-                ~enable:wr
-                ~width:8
-                ~f:(fun d -> d +:. 1)
+              reg_fb spec_write ~clear_to:(one 8) ~enable:wr ~width:8 ~f:(fun d ->
+                d +:. 1)
           ; rd = read
           }
       in
