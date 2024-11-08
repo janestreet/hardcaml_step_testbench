@@ -140,7 +140,9 @@ module _ (* Basic test *) = struct
   ;;
 
   let run () =
-    let { Evsim.processes; input; output; internal = _ } = Evsim.create create in
+    let { Evsim.processes; input; output; internal = _; memories = _ } =
+      Evsim.create create
+    in
     let step_process =
       Step.process () ~clock:input.clock.signal ~testbench:(testbench input)
     in
