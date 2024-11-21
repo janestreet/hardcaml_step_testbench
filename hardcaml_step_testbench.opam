@@ -15,6 +15,7 @@ depends: [
   "core"
   "hardcaml"
   "hardcaml_event_driven_sim"
+  "hardcaml_waveterm"
   "ppx_jane"
   "stdio"
   "dune"                      {>= "3.11.0"}

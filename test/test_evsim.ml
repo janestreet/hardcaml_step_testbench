@@ -53,7 +53,9 @@ module _ (* Basic test *) = struct
   ;;
 
   let run () =
-    let { Evsim.processes; input; output; internal = _ } = Evsim.create create in
+    let { Evsim.processes; input; output; internal = _; memories = _ } =
+      Evsim.create create
+    in
     let step_process =
       Step.process
         ()
@@ -237,7 +239,7 @@ struct
   ;;
 
   let run () =
-    let { Evsim.processes; input; output; internal } =
+    let { Evsim.processes; input; output; internal; memories = _ } =
       let scope =
         Scope.create ~flatten_design:true ~auto_label_hierarchical_ports:true ()
       in
@@ -332,7 +334,7 @@ module _ (* Multiple spawned things *) = struct
         (Test.I)
         (Test.O)
     in
-    let { Evsim.processes; input; output; internal = _ } =
+    let { Evsim.processes; input; output; internal = _; memories = _ } =
       Evsim.create Test.make_circuit
     in
     let testbench =
@@ -432,7 +434,9 @@ module _ (* Test different ways outputs are affected *) = struct
         (I)
         (O)
     in
-    let { Evsim.processes; input; output; internal = _ } = Evsim.create create_fn in
+    let { Evsim.processes; input; output; internal = _; memories = _ } =
+      Evsim.create create_fn
+    in
     let testbench =
       Evstep.deferred
         ()
