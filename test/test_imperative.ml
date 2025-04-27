@@ -30,10 +30,10 @@ open Step.Let_syntax
    returns a string to show we can.
 *)
 let rec incr_step i step (inputs : _ I.t) () =
-  inputs.step := Bits.of_int ~width:8 step;
+  inputs.step := Bits.of_int_trunc ~width:8 step;
   if step = 4
   then (
-    inputs.step := Bits.of_int ~width:8 0;
+    inputs.step := Bits.of_int_trunc ~width:8 0;
     return "hello!!!")
   else if i = step
   then incr_step 0 (step + 1) inputs ()
@@ -52,7 +52,7 @@ let testbench (inputs : _ I.t) (outputs : _ O.t) () =
   let%bind () = Step.cycle ~num_cycles:1 () in
   inputs.enable := Bits.vdd;
   let%bind hello = Step.wait_for hello in
-  return (Bits.to_int !(outputs.q), hello)
+  return (Bits.to_int_trunc !(outputs.q), hello)
 ;;
 
 let%expect_test "" =
@@ -65,7 +65,7 @@ let%expect_test "" =
       ~testbench:(testbench (Cyclesim.inputs simulator) (Cyclesim.outputs simulator))
   in
   print_s [%message (result : int * string)];
-  Waveform.print ~wave_width:2 ~display_height:13 waves;
+  Waveform.print ~wave_width:2 waves;
   [%expect
     {|
     (result (10 hello!!!))
@@ -80,7 +80,6 @@ let%expect_test "" =
     │               ││────────────┬─────┬─────┬───────────┬───────────   │
     │q              ││ 00         │02   │04   │07         │0A            │
     │               ││────────────┴─────┴─────┴───────────┴───────────   │
-    │               ││                                                   │
     └───────────────┘└───────────────────────────────────────────────────┘
     |}]
 ;;
@@ -101,7 +100,7 @@ module _ (* Basic test *) = struct
   end
 
   let create ({ clock; enable } : _ I.t) =
-    let spec = Reg_spec.create ~clock () in
+    let spec = Signal.Reg_spec.create ~clock () in
     { O.q = Signal.reg_fb spec ~enable ~width:8 ~f:(fun d -> Signal.( +:. ) d 1) }
   ;;
 

@@ -47,7 +47,7 @@ module Make (Monads : Hardcaml_step_testbench.Step_monads.S) = struct
       let%bind source =
         Tb_source.cycle
           { valid = Bits.vdd
-          ; data = Bits.of_int ~width:32 num_words
+          ; data = Bits.of_int_trunc ~width:32 num_words
           ; first = (if first then Bits.vdd else Bits.gnd)
           ; last = (if num_words = 1 then Bits.vdd else Bits.gnd)
           }
@@ -58,13 +58,13 @@ module Make (Monads : Hardcaml_step_testbench.Step_monads.S) = struct
   let rec recv_data data (output : Tb.O_data.t) : Bits.t list Tb.t =
     let open Tb.Let_syntax in
     let source = (Tb.O_data.after_edge output).source in
-    if Bits.to_int source.valid <> 1
+    if Bits.to_int_trunc source.valid <> 1
     then wait_for_next_cycle data
-    else if Bits.to_int source.first = 1
+    else if Bits.to_int_trunc source.first = 1
     then wait_for_next_cycle [ source.data ]
     else (
       let data = source.data :: data in
-      if Bits.to_int source.last = 1
+      if Bits.to_int_trunc source.last = 1
       then return (List.rev data)
       else wait_for_next_cycle data)
 

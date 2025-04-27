@@ -1,5 +1,4 @@
-(** Cyclesim based step testbench API. Includes functions to run the resulting testbench.
-*)
+(** Cyclesim based step testbench API. Includes functions to run the resulting testbench. *)
 
 open! Core
 open Hardcaml

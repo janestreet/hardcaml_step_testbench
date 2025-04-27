@@ -1,6 +1,5 @@
 (** Event_driven_sim based step testbench API. Includes functions to run the resulting
-    testbench.
-*)
+    testbench. *)
 
 open! Core
 open Hardcaml
@@ -40,10 +39,9 @@ module type S = sig
     -> 'r
 
   (** Create an event sim deferred that can be run inside a process. The result of the
-      step testbench is returned.  None is returned if the simulation times out.
+      step testbench is returned. None is returned if the simulation times out.
 
-      The clock signal should be driven externally - do NOT set it within the step moand.
-  *)
+      The clock signal should be driven externally - do NOT set it within the step moand. *)
   val deferred : ('a, unit -> 'a option Simulator.Event_simulator.Async.Deferred.t) run
 
   (** Wrap an event sim in a process and wait forever after it completes. *)
