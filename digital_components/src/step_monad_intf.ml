@@ -20,22 +20,22 @@ module type S = sig
   val thunk : (unit -> ('a, 'i, 'o) t) -> ('a, 'i, 'o) t
   val output_forever : 'o -> (_, _, 'o) t
 
-  (** [for_ i j f] does [f i], [f (i+1)], ... [f j] in sequence.  If [j < i], then
+  (** [for_ i j f] does [f i], [f (i+1)], ... [f j] in sequence. If [j < i], then
       [for_ i j] immediately returns unit. *)
   val for_ : int -> int -> (int -> (unit, 'i, 'o) t) -> (unit, 'i, 'o) t
 
-  (** [delay o ~num_steps] outputs [o] for [num_steps] and then returns unit.  [delay]
+  (** [delay o ~num_steps] outputs [o] for [num_steps] and then returns unit. [delay]
       raises if [num_steps < 0]. *)
   val delay : 'o -> num_steps:int -> (unit, _, 'o) t
 
-  (** [repeat ~count f] does [f ()] [count] times.  [repeat] raises if [count < 0]. *)
+  (** [repeat ~count f] does [f ()] [count] times. [repeat] raises if [count < 0]. *)
   val repeat : count:int -> (unit -> (unit, 'i, 'o) t) -> (unit, 'i, 'o) t
 
   val wait : output:'o -> until:('i -> bool) -> (unit, 'i, 'o) t
 
   (** An event is a value that will at some point in time (possibly the past, possibly the
-      future) transition from "undetermined" to "determined", with some value.  One
-      can [wait_for] an event in a computation. *)
+      future) transition from "undetermined" to "determined", with some value. One can
+      [wait_for] an event in a computation. *)
   module Event : sig
     type 'a t [@@deriving sexp_of]
 
@@ -54,14 +54,13 @@ module type S = sig
     [@@deriving sexp_of]
   end
 
-  (** [spawn] creates a child computation that runs [start].  [spawn] returns on the
-      current step, and the child starts on the next step.  The parent computation uses
-      [child_input] to adjust its input into the form that the child computation sees,
-      and [include_child_output] to incorporate the child's output into its output.
+  (** [spawn] creates a child computation that runs [start]. [spawn] returns on the
+      current step, and the child starts on the next step. The parent computation uses
+      [child_input] to adjust its input into the form that the child computation sees, and
+      [include_child_output] to incorporate the child's output into its output.
 
       When [update_children_after_finish], unfinished tasks spawned from within [start]
-      will be executed even after [start] completes.
-  *)
+      will be executed even after [start] completes. *)
   val spawn
     :  ?update_children_after_finish:bool (** default is [false] *)
     -> Source_code_position.t
@@ -72,12 +71,10 @@ module type S = sig
     -> include_child_output:(parent:'o -> child:'o_c -> 'o)
     -> (('a, 'o_c) Component_finished.t Event.t, 'i, 'o) t
 
-  (** [create_component] creates a [Component.t] that runs the computation described
-      by [start]. When [update_children_after_finish] is set to true, all component's
-      children will be updated even after the child terminates. This will result in
-      tasks spawned from within the child task to execute even after the child
-      terminates.
-  *)
+  (** [create_component] creates a [Component.t] that runs the computation described by
+      [start]. When [update_children_after_finish] is set to true, all component's
+      children will be updated even after the child terminates. This will result in tasks
+      spawned from within the child task to execute even after the child terminates. *)
   val create_component
     :  created_at:Source_code_position.t
     -> update_children_after_finish:bool

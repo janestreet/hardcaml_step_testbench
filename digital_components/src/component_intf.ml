@@ -1,5 +1,5 @@
 (** A [('i, 'o) Component.t] is a value suitable for modeling both combinational and
-    sequential digital logic.  A component is stateless if it is purely combinational, and
+    sequential digital logic. A component is stateless if it is purely combinational, and
     stateful if modeling sequential logic.
 
     A component has two main functions:
@@ -7,8 +7,8 @@
     - an [output] function that returns the output of the component based on an input and
       the current state.
 
-    - an [update_state] function that updates the state based on an input and
-      the current state.
+    - an [update_state] function that updates the state based on an input and the current
+      state.
 
     A component is a first class module that can be implemented in any number of ways:
 
@@ -70,10 +70,10 @@ module M (Input_monad : Monad.S) = struct
     val create : ('i, 'o) t_module -> ('i, 'o) t
 
     (** [output] returns the output based on an input and its current state, but does not
-        update the state.  A component is called "combinational" if [output t i] ignores
-        [t].  A component is called "sequential" if [output t i] uses [t].  A sequential
-        component is called a "moore machine" if it ignores [i] and a "mealy machine" if it
-        uses [i]. *)
+        update the state. A component is called "combinational" if [output t i] ignores
+        [t]. A component is called "sequential" if [output t i] uses [t]. A sequential
+        component is called a "moore machine" if it ignores [i] and a "mealy machine" if
+        it uses [i]. *)
     val output : ('i, 'o) t -> 'i -> 'o
 
     (** [update_state] updates [t]'s state based on an input and its current state *)

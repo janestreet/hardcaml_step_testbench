@@ -118,6 +118,22 @@ module Make (Monads : Step_monads.S) (I : Interface.S) (O : Interface.S) = struc
         wait_for_with_timeout event ~timeout_in_cycles:(timeout_in_cycles - 1))
   ;;
 
+  let forever f : never_returns t =
+    let rec loop () = f () >>= loop in
+    loop ()
+  ;;
+
+  let forever_unit f =
+    let%bind _ = forever f in
+    return ()
+  ;;
+
+  let never : never_returns t =
+    forever (fun () ->
+      let%bind _ = cycle input_hold in
+      return ())
+  ;;
+
   module List = struct
     let init len ~f =
       let rec init i =

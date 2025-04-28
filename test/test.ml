@@ -60,7 +60,7 @@ let%expect_test "input setting hierarchy" =
     else (
       let%bind o = Tb.cycle Tb.input_hold in
       let o_after_edge = Tb.O_data.after_edge o in
-      get_outputs (count - 1) (Data.map o_after_edge ~f:Bits.to_int :: data))
+      get_outputs (count - 1) (Data.map o_after_edge ~f:Bits.to_int_trunc :: data))
   in
   (* All combinations of setting ports at 4 levels.  Deepest child should always win.  The
      [a] and [b] ports are set identically, but treated differently by the [input_default]
@@ -70,9 +70,9 @@ let%expect_test "input setting hierarchy" =
   let data =
     List.init levels ~f:(fun level ->
       Array.init (1 lsl levels) ~f:(fun index ->
-        let x = Bits.of_int ~width:levels index in
-        if Bits.(x.:(level) |> to_int) = 1
-        then Bits.of_int ~width (level + 1)
+        let x = Bits.of_int_trunc ~width:levels index in
+        if Bits.(x.:(level) |> to_int_trunc) = 1
+        then Bits.of_int_trunc ~width (level + 1)
         else Bits.empty))
   in
   let rec set_level data _ =
@@ -90,7 +90,7 @@ let%expect_test "input setting hierarchy" =
   let data =
     Tb.run_until_finished
       ()
-      ~input_default:{ a = Bits.empty; b = Bits.of_int ~width (-1) }
+      ~input_default:{ a = Bits.empty; b = Bits.of_int_trunc ~width (-1) }
       ~simulator
       ~testbench:(fun _ ->
         let%bind get_outputs_finished =
@@ -222,7 +222,7 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
       return ()
     in
     Tb.run_until_finished () ~simulator ~testbench;
-    Waveform.expect ~display_height:9 waves
+    Waveform.expect waves
   in
   test true;
   [%expect
@@ -234,7 +234,6 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
     │               ││────────┬───────────────┬───────┬───────┬──────────│
     │q              ││ FF     │00             │01     │FF     │00        │
     │               ││────────┴───────────────┴───────┴───────┴──────────│
-    │               ││                                                   │
     └───────────────┘└───────────────────────────────────────────────────┘
     a8fdb200e2f8f0bcfadf037cdab1139d
     |}];
@@ -248,7 +247,6 @@ let%expect_test "Spawn tasks sequentially which set the same input." =
     │               ││────────┬───────────────┬───────┬───────┬──────────│
     │q              ││ FF     │00             │01     │FF     │00        │
     │               ││────────┴───────────────┴───────┴───────┴──────────│
-    │               ││                                                   │
     └───────────────┘└───────────────────────────────────────────────────┘
     a8fdb200e2f8f0bcfadf037cdab1139d
     |}]

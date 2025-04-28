@@ -1,8 +1,7 @@
 (** Common testbench API between simulators.
 
     Testbenches written against this API make may be used with either cyclesim or
-    event_driven_sim.
-*)
+    event_driven_sim. *)
 
 open Core
 open Hardcaml
@@ -24,8 +23,8 @@ module type S = sig
   end
 
   (** A testbench takes the circuit's output as its input and produces its output as input
-      for the circuit.  An ['a t] describes a testbench computation that takes zero or
-      more steps and produces a value of type ['a]. *)
+      for the circuit. An ['a t] describes a testbench computation that takes zero or more
+      steps and produces a value of type ['a]. *)
   type 'a t = ('a, O_data.t, I_data.t) Step_monad.t
 
   include Monad.S with type 'a t := 'a t
@@ -34,15 +33,15 @@ module type S = sig
 
   (** [cycle i_data ~num_cycles] waits for [num_cycles] cycles of the simulator to run,
       applying [i_data] to the simulator input ports, and returns the output computed in
-      the final cycle.  [cycle] raises if [num_cycles < 1]. *)
+      the final cycle. [cycle] raises if [num_cycles < 1]. *)
   val cycle : ?num_cycles:int (** default is 1 *) -> I_data.t -> O_data.t t
 
-  (** [for_ i j f] does [f i], [f (i+1)], ... [f j] in sequence.  If [j < i], then [for_ i
-      j] immediately returns unit. *)
+  (** [for_ i j f] does [f i], [f (i+1)], ... [f j] in sequence. If [j < i], then
+      [for_ i j] immediately returns unit. *)
   val for_ : int -> int -> (int -> unit t) -> unit t
 
   (** [delay inputs ~num_cycles] applies [inputs] for [num_cycles] clock cycles and then
-      returns unit.  [delay] raises if [num_cycles < 0]. *)
+      returns unit. [delay] raises if [num_cycles < 0]. *)
   val delay : I_data.t -> num_cycles:int -> unit t
 
   type ('a, 'b) finished_event =
@@ -52,22 +51,20 @@ module type S = sig
   val spawn
     :  ?update_children_after_finish:bool
          (** When [update_children_after_finish] is set to true. children tasks that have
-             finished will still be updated. This will notably trigger an update on
-             nested spawns.
-         *)
+             finished will still be updated. This will notably trigger an update on nested
+             spawns. *)
     -> (O_data.t -> 'a t)
     -> ('a, I_data.t) finished_event t
 
-  (** [merge_inputs ~parent ~child] merges the child inputs into the parent.  If a child
+  (** [merge_inputs ~parent ~child] merges the child inputs into the parent. If a child
       input is [empty], the parent's value is used. *)
   val merge_inputs : parent:I_data.t -> child:I_data.t -> I_data.t
 
-  (** Launch a task from a testbench with a [cycle] function taking ['i] to ['o].  The
+  (** Launch a task from a testbench with a [cycle] function taking ['i] to ['o]. The
       [inputs] and [outputs] arguments should construct [I_data.t] and [O_data.t] from the
       types of the child testbench.
 
-      See documentation of [spawn] for an explaination of [update_children_after_finish].
-  *)
+      See documentation of [spawn] for an explaination of [update_children_after_finish]. *)
   val spawn_io
     :  ?update_children_after_finish:bool
     -> inputs:(parent:'i -> child:I_data.t -> 'i)
@@ -92,6 +89,17 @@ module type S = sig
   (** Call [run ~input_default:input_zero] to set inputs to zero if unset by tasks in the
       testbench. *)
   val input_zero : Bits.t I.t
+
+  (** Call [forever f] to run [f] forever. [forever] never returns.
+
+      To prevent starving other tasks, it's the caller's responsibility to ensure that [f]
+      calls [cycle] or [delay] under the hood! *)
+  val forever : (unit -> unit t) -> never_returns t
+
+  (** Similar to [forever], but returns unit, for convenience. *)
+  val forever_unit : (unit -> unit t) -> unit t
+
+  val never : never_returns t
 
   module List : sig
     (** Construct a list of step monad results. The binds occurs from [0, 1, ...] which is

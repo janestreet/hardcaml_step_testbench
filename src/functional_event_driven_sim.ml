@@ -26,8 +26,8 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         Simulator.Event_simulator.Async.wait_for_change
           (Simulator.Event_simulator.Signal.id signal)
       in
-      if Logic.is_gnd (Simulator.Event_simulator.Signal.read_last signal)
-         && Logic.is_vdd (Simulator.Event_simulator.Signal.read signal)
+      if (not (Logic.to_bool (Simulator.Event_simulator.Signal.read_last signal)))
+         && Logic.to_bool (Simulator.Event_simulator.Signal.read signal)
       then Deferred.return ()
       else wait_for_rising_edge signal
     ;;
@@ -37,8 +37,8 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         Simulator.Event_simulator.Async.wait_for_change
           (Simulator.Event_simulator.Signal.id signal)
       in
-      if Logic.is_vdd (Simulator.Event_simulator.Signal.read_last signal)
-         && Logic.is_gnd (Simulator.Event_simulator.Signal.read signal)
+      if Logic.to_bool (Simulator.Event_simulator.Signal.read_last signal)
+         && not (Logic.to_bool (Simulator.Event_simulator.Signal.read signal))
       then Deferred.return ()
       else wait_for_falling_edge signal
     ;;

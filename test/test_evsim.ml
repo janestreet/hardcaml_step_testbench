@@ -17,7 +17,7 @@ module _ (* Basic test *) = struct
   end
 
   let create ({ clock; enable } : _ I.t) =
-    let spec = Reg_spec.create ~clock () in
+    let spec = Signal.Reg_spec.create ~clock () in
     { O.q = Signal.reg_fb spec ~enable ~width:8 ~f:(fun d -> Signal.( +:. ) d 1) }
   ;;
 
@@ -186,7 +186,7 @@ struct
           ; rd = read
           }
       in
-      read <== (rd &: ~:(fifo.empty));
+      read <-- (rd &: ~:(fifo.empty));
       { O.q = fifo.q; valid = ~:(fifo.empty) }
     ;;
 
@@ -209,7 +209,7 @@ struct
     let reads = ref [] in
     let get_read (o : Step.O_data.t) =
       if to_bool o.before_edge.valid
-      then reads := to_int o.before_edge.q :: !reads
+      then reads := to_int_trunc o.before_edge.q :: !reads
       else ()
     in
     (* clear *)

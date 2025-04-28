@@ -22,7 +22,9 @@ end
 
 let create (i : _ I.t) =
   { O.o =
-      Signal.reg (Reg_spec.create ~clock:i.clock ()) Signal.(i.i0.x |: i.i1.x |: i.i2.x)
+      Signal.reg
+        (Signal.Reg_spec.create ~clock:i.clock ())
+        Signal.(i.i0.x |: i.i1.x |: i.i2.x)
   }
 ;;
 
@@ -72,14 +74,6 @@ let%expect_test "" =
     │               ││────────┘                                          │
     │o              ││                ┌──────────────────────────────────│
     │               ││────────────────┘                                  │
-    │               ││                                                   │
-    │               ││                                                   │
-    │               ││                                                   │
-    │               ││                                                   │
-    │               ││                                                   │
-    │               ││                                                   │
-    │               ││                                                   │
-    │               ││                                                   │
     └───────────────┘└───────────────────────────────────────────────────┘
     |}]
 ;;

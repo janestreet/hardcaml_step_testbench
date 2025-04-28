@@ -14,8 +14,8 @@ module type S = sig
       [cycle] raises if [num_cycles < 1]. *)
   val cycle : ?num_cycles:int -> unit -> unit t
 
-  (** [for_ i j f] does [f i], [f (i+1)], ... [f j] in sequence.  If [j < i], then [for_ i
-      j] immediately returns unit. *)
+  (** [for_ i j f] does [f i], [f (i+1)], ... [f j] in sequence. If [j < i], then
+      [for_ i j] immediately returns unit. *)
   val for_ : int -> int -> (int -> unit t) -> unit t
 
   val start : ('a -> 'b t) -> 'a -> ('b, No_data.t) Step_monad.Component_finished.t t
