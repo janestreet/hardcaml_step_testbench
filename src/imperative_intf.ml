@@ -3,10 +3,11 @@ open! Hardcaml
 open Digital_components
 
 module type S = sig
-  module No_data : Data.S with type t = unit
+  module I_data : Data.S with type t = unit
+  module O_data : Data.S with type t = unit Before_and_after_edge.t
   module Step_monad : Digital_components.Step_monad.S
 
-  type 'a t = ('a, No_data.t, No_data.t) Step_monad.t
+  type 'a t = ('a, O_data.t, I_data.t) Step_monad.t
 
   include Monad.S with type 'a t := 'a t
 
@@ -18,19 +19,26 @@ module type S = sig
       [for_ i j] immediately returns unit. *)
   val for_ : int -> int -> (int -> unit t) -> unit t
 
-  val start : ('a -> 'b t) -> 'a -> ('b, No_data.t) Step_monad.Component_finished.t t
+  val start : ('a -> 'b t) -> 'a -> ('b, I_data.t) Step_monad.Component_finished.t t
 
-  type 'a finished_event = ('a, unit) Step_monad.Component_finished.t Step_monad.Event.t
+  type ('a, 'i) finished_event =
+    ('a, 'i) Step_monad.Component_finished.t Step_monad.Event.t
 
   (** Launch a new task within the current simulation step. *)
-  val spawn : (unit -> 'a t) -> 'a finished_event t
+  val spawn : (unit -> 'a t) -> ('a, unit) finished_event t
 
   (** Wait for the given event to occur, and extract its return value. *)
-  val wait_for : 'a finished_event -> 'a t
+  val wait_for : ('a, 'i) finished_event -> 'a t
 
   (** Like [wait_for] except it stops waiting after [timeout_in_cycles] and returns
       [None]. Note that the spawned task continues to execute. *)
-  val wait_for_with_timeout : 'a finished_event -> timeout_in_cycles:int -> 'a option t
+  val wait_for_with_timeout
+    :  ('a, 'i) finished_event
+    -> timeout_in_cycles:int
+    -> 'a option t
+
+  (** Runs the given step function forever. *)
+  val forever : (unit -> unit t) -> never_returns t
 
   module List : sig
     (** Construct a list of step monad results. The binds occurs from [0, 1, ...] which is

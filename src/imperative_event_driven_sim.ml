@@ -65,7 +65,7 @@ let next_input ~simulation_step ~timeout ~clock ~result_event =
     | None ->
       if timedout ()
       then Deferred.return Step_monad.Component.Next_input.Finished
-      else Deferred.return (Step_monad.Component.Next_input.Input ())
+      else Deferred.return (Step_monad.Component.Next_input.Input O_data.undefined)
     | Some _ -> Deferred.return Step_monad.Component.Next_input.Finished
 ;;
 
@@ -88,16 +88,16 @@ let deferred
     Step_monad.create_component
       ~update_children_after_finish:false
       ~created_at:[%here]
-      ~start:(start testbench)
-      ~input:(module No_data)
-      ~output:(module No_data)
+      ~start:(start (fun _ -> testbench ()))
+      ~input:(module O_data)
+      ~output:(module I_data)
   in
   fun () ->
     let open Simulator.Event_simulator.Async.Deferred.Let_syntax in
     let%map () =
       Step_monad.Component.run_until_finished
         component
-        ~first_input:()
+        ~first_input:O_data.undefined
         ~next_input:(next_input ~simulation_step ~timeout ~clock ~result_event)
     in
     match Step_monad.Event.value result_event with

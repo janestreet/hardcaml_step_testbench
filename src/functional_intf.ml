@@ -7,7 +7,17 @@ open Core
 open Hardcaml
 open Digital_components
 
+(** Type to store the IO ports used when spawning an imperative task. See
+    [spawn_from_imperative] below. *)
+module Io_ports_for_imperative = struct
+  type ('i, 'o) t =
+    { inputs : 'i
+    ; outputs : 'o Before_and_after_edge.t
+    }
+end
+
 module type S = sig
+  module Io_ports_for_imperative = Io_ports_for_imperative
   module Step_monad : Digital_components.Step_monad.S
   module I : Hardcaml.Interface.S
   module O : Hardcaml.Interface.S
@@ -71,6 +81,32 @@ module type S = sig
     -> outputs:('o -> Bits.t O.t)
     -> (O_data.t -> 'a t)
     -> (('a, I_data.t) finished_event, 'o Before_and_after_edge.t, 'i) Step_monad.t
+
+  (** Create io ports to be used with [spawn_from_imperative] from a simulator. *)
+  val create_io_ports_for_imperative
+    :  ('i, 'o) Cyclesim.t
+    -> inputs:('i -> Bits.t ref I.t)
+    -> outputs:('o -> Bits.t ref O.t)
+    -> (Bits.t ref I.t, Bits.t ref O.t) Io_ports_for_imperative.t
+
+  (** Similar to [spawn_io], but for a task (which uses the functional step testbench)
+      from a task that's using the imperative step testbench. *)
+  val spawn_from_imperative
+    :  ?update_children_after_finish:bool
+    -> (Bits.t ref I.t, Bits.t ref O.t) Io_ports_for_imperative.t
+    -> (O_data.t -> 'a t)
+    -> (('a, I_data.t) finished_event, unit Before_and_after_edge.t, unit) Step_monad.t
+
+  (** Spawns a functional step testbench infinite loop from a imperative testbench, and
+      block forever.
+
+      This semantically similar to [spawn_from_imperative >>= wait_for] under the hood but
+      with nicer types. *)
+  val exec_never_returns_from_imperative
+    :  ?update_children_after_finish:bool
+    -> (Bits.t ref I.t, Bits.t ref O.t) Io_ports_for_imperative.t
+    -> (O_data.t -> never_returns t)
+    -> (never_returns, unit Before_and_after_edge.t, unit) Step_monad.t
 
   (** Wait for the given event to occur, and extract its return value. *)
   val wait_for : ('a, 'b) finished_event -> 'a t

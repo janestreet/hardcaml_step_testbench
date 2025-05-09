@@ -18,7 +18,7 @@ module type S = sig
     -> ?timeout:int (** default is [None] *)
     -> unit
     -> simulator:(_, _) Cyclesim.t
-    -> testbench:(No_data.t -> 'a t)
+    -> testbench:(unit -> 'a t)
     -> 'a option
 
   (** Run the testbench until completion. *)
@@ -26,8 +26,33 @@ module type S = sig
     :  ?update_children_after_finish:bool (** default is [false] *)
     -> unit
     -> simulator:(_, _) Cyclesim.t
-    -> testbench:(No_data.t -> 'a t)
+    -> testbench:(unit -> 'a t)
     -> 'a
+
+  (** [wrap] constructs a [Sim.t] instances such that calling [Cyclesim.cycle sim] will
+      step the testbenches by one a cycle. The testbench will stop executing if it's
+      completed, but the user will not receive any notification if this happens. The
+      provided testbenches are executed sequentially.
+
+      Note that there is no safety gurantees on the main simulation loop and the
+      testbenches accessing the ports. It's the programmer's responsibility to think about
+      how the port access. For most use cases, it's expected that the testbenches and the
+      main simulation loop should be modifying different input ports. *)
+  val wrap
+    :  ?show_steps:bool
+    -> when_to_evaluate_testbenches:[ `Before_cycle | `After_cycle ]
+    -> testbenches:(unit -> unit t) list
+    -> ('i, 'o) Cyclesim.t
+    -> ('i, 'o) Cyclesim.t
+
+  (** Exactly the same as [wrap], but accepts a [never_returns] testbench in the
+      signature. *)
+  val wrap_never_returns
+    :  ?show_steps:bool
+    -> when_to_evaluate_testbenches:[ `Before_cycle | `After_cycle ]
+    -> testbenches:(unit -> never_returns t) list
+    -> ('i, 'o) Cyclesim.t
+    -> ('i, 'o) Cyclesim.t
 end
 
 module type Imperative_cyclesim = sig

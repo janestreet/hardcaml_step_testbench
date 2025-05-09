@@ -10,6 +10,7 @@ module Make (Monads : Step_monads.S) (I : Interface.S) (O : Interface.S) = struc
   module Step_monad = Step_monad
   module I = I
   module O = O
+  module Io_ports_for_imperative = Functional_intf.Io_ports_for_imperative
 
   module Interface_as_data (I : Interface.S) :
     Digital_components.Data.S with type t = Bits.t I.t = struct
@@ -82,24 +83,72 @@ module Make (Monads : Step_monads.S) (I : Interface.S) (O : Interface.S) = struc
     return { Step_monad.Component_finished.output = I_data.undefined; result }
   ;;
 
-  let spawn_io ?update_children_after_finish ~inputs ~outputs task =
+  let spawn_io_different_outputs ?update_children_after_finish ~inputs ~outputs task =
     Step_monad.spawn
       ?update_children_after_finish
       [%here]
       ~input:(module O_data)
       ~output:(module I_data)
-      ~child_input:(fun ~parent -> Before_and_after_edge.map ~f:outputs parent)
+      ~child_input:(fun ~parent ->
+        Before_and_after_edge.map2 ~f:(fun f x -> f x) outputs parent)
       ~include_child_output:inputs
       ~start:(start task)
+  ;;
+
+  let spawn_io ?update_children_after_finish ~inputs ~outputs task =
+    let outputs = Before_and_after_edge.const outputs in
+    spawn_io_different_outputs ?update_children_after_finish ~inputs ~outputs task
   ;;
 
   let spawn ?update_children_after_finish task =
     spawn_io ?update_children_after_finish task ~outputs:Fn.id ~inputs:merge_inputs
   ;;
 
+  let create_io_ports_for_imperative simulator ~inputs ~outputs =
+    let inputs = inputs (Cyclesim.inputs simulator) in
+    let outputs =
+      { Before_and_after_edge.before_edge =
+          outputs (Cyclesim.outputs ~clock_edge:Before simulator)
+      ; after_edge = outputs (Cyclesim.outputs ~clock_edge:After simulator)
+      }
+    in
+    { Io_ports_for_imperative.inputs; outputs }
+  ;;
+
+  let spawn_from_imperative
+    ?update_children_after_finish
+    (io_ports : _ Io_ports_for_imperative.t)
+    task
+    =
+    let%tydi { inputs = inputs_ref; outputs = outputs_ref } = io_ports in
+    let inputs ~parent:() ~child:src =
+      I.iter2 inputs_ref src ~f:(fun dst src ->
+        if not (Bits.is_empty src) then dst := src)
+    in
+    let outputs =
+      Before_and_after_edge.map outputs_ref ~f:(fun dst () -> O.map ~f:( ! ) dst)
+    in
+    spawn_io_different_outputs ?update_children_after_finish ~inputs ~outputs task
+  ;;
+
   let wait_for (event : _ finished_event) =
     let%bind x = Step_monad.wait_for event ~output:I_data.undefined in
     return x.result
+  ;;
+
+  let exec_never_returns_from_imperative
+    ?update_children_after_finish
+    io_ports
+    (task : O_data.t -> never_returns t)
+    : (never_returns, unit Before_and_after_edge.t, unit) Step_monad.t
+    =
+    let%bind.Step_monad ev_never_returns =
+      spawn_from_imperative ?update_children_after_finish io_ports task
+    in
+    let%bind.Step_monad _ = Step_monad.wait_for ev_never_returns ~output:() in
+    raise_s
+      [%message
+        "[exec_never_returns_from_imperative] should never return. This is a bug!"]
   ;;
 
   let input_hold = I.const Bits.empty

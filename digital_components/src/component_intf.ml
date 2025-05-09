@@ -96,6 +96,8 @@ module M (Input_monad : Monad.S) = struct
       [@@deriving sexp_of]
     end
 
+    val create_step_function : show_steps:bool -> ('i, 'o) t -> ('i -> 'o) Staged.t
+
     val run_until_finished
       :  ?show_steps:bool (** default is [false] *)
       -> ('i, 'o) t
