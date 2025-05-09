@@ -2,6 +2,6 @@
  (name hardcaml_step_testbench_test)
  (libraries expect_test_helpers_core hardcaml_waveterm core
    hardcaml_event_driven_sim.kernel hardcaml hardcaml_event_driven_sim
-   hardcaml_step_testbench stdio)
+   hardcaml_step_testbench stdio sexp_pretty)
  (preprocess
   (pps ppx_hardcaml ppx_jane)))

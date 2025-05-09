@@ -55,18 +55,24 @@ module Make (Input_monad : Monad.S) = struct
     [@@deriving sexp_of]
   end
 
+  let create_step_function ~show_steps t =
+    let step_number = ref 0 in
+    Staged.stage (fun input ->
+      if show_steps then Stdio.print_s [%message "" ~step_number:(!step_number : int)];
+      Int.incr step_number;
+      update_state ~prune:(!step_number % 1000 = 0) t input;
+      output t input)
+  ;;
+
   let run_until_finished
     ?(show_steps = false)
     t
     ~first_input
     ~(next_input : _ -> _ Next_input.t Input_monad.t)
     =
-    let step_number = ref 0 in
+    let before_cycle = Staged.unstage (create_step_function ~show_steps t) in
     let rec loop input =
-      if show_steps then Stdio.print_s [%message "" ~step_number:(!step_number : int)];
-      Int.incr step_number;
-      update_state ~prune:(!step_number % 1000 = 0) t input;
-      let output = output t input in
+      let output = before_cycle input in
       let%bind.Input_monad next_input = next_input output in
       match next_input with
       | Finished -> Input_monad.return ()

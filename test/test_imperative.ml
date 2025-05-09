@@ -1,6 +1,7 @@
 open! Core
 open Hardcaml
 open Hardcaml_waveterm
+module Before_and_after_edge = Hardcaml_step_testbench.Before_and_after_edge
 
 module I = struct
   type 'a t =
@@ -83,6 +84,104 @@ let%expect_test "" =
     └───────────────┘└───────────────────────────────────────────────────┘
     |}]
 ;;
+
+module%test Spawn_functional_step = struct
+  open Step.Let_syntax
+  module Functional_step = Hardcaml_step_testbench.Functional.Cyclesim.Make (I) (O)
+
+  let testbench (sim : Sim.t) =
+    let io_ports =
+      Functional_step.create_io_ports_for_imperative sim ~inputs:Fn.id ~outputs:Fn.id
+    in
+    let%bind task =
+      Functional_step.spawn_from_imperative
+        io_ports
+        (fun (_ : Bits.t O.t Before_and_after_edge.t) ->
+           Functional_step.List.init 5 ~f:(fun i ->
+             let%bind.Functional_step o =
+               Functional_step.cycle
+                 { Functional_step.input_hold with
+                   enable = Bits.vdd
+                 ; step = Bits.of_int_trunc ~width:8 i
+                 }
+             in
+             Functional_step.return (Bits.to_int_trunc o.after_edge.q)))
+    in
+    let%bind results = Step.wait_for task in
+    [%test_result: int list] ~expect:[ 0; 1; 3; 6; 10 ] results;
+    return ()
+  ;;
+
+  let%expect_test "Spans a task from imperative and run it to completion" =
+    let simulator = Sim.create create in
+    let waves, simulator = Waveform.create simulator in
+    Step.run_until_finished () ~simulator ~testbench:(fun () -> testbench simulator);
+    Waveform.print ~wave_width:2 waves;
+    [%expect
+      {|
+      ┌Signals────────┐┌Waves──────────────────────────────────────────────┐
+      │clock          ││┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──│
+      │               ││   └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  │
+      │enable         ││──────────────────────────────────────────         │
+      │               ││                                                   │
+      │               ││──────┬─────┬─────┬─────┬─────────────────         │
+      │step           ││ 00   │01   │02   │03   │04                        │
+      │               ││──────┴─────┴─────┴─────┴─────────────────         │
+      │               ││────────────┬─────┬─────┬─────┬─────┬─────         │
+      │q              ││ 00         │01   │03   │06   │0A   │0E            │
+      │               ││────────────┴─────┴─────┴─────┴─────┴─────         │
+      └───────────────┘└───────────────────────────────────────────────────┘
+      |}]
+  ;;
+
+  let mk_testbench (sim : Sim.t) () =
+    let open Functional_step.Let_syntax in
+    let io_ports =
+      Functional_step.create_io_ports_for_imperative sim ~inputs:Fn.id ~outputs:Fn.id
+    in
+    Functional_step.exec_never_returns_from_imperative io_ports (fun _ ->
+      let ctr = ref 1 in
+      Functional_step.forever (fun () ->
+        let%bind () =
+          Functional_step.delay
+            ~num_cycles:1
+            { Functional_step.input_hold with
+              enable = Bits.vdd
+            ; step = Bits.of_int_trunc ~width:8 !ctr
+            }
+        in
+        ctr := !ctr + 1;
+        if !ctr > 100
+        then failwith "BUG: infinite loop in testbench when expecting task to timeout";
+        return ()))
+  ;;
+
+  let%expect_test "Executes a forever task from imperative" =
+    let simulator = Sim.create create in
+    let waves, simulator = Waveform.create simulator in
+    (match
+       Step.run_with_timeout ~timeout:5 () ~simulator ~testbench:(mk_testbench simulator)
+     with
+     | None -> ()
+     | Some _ -> failwith "expected timeout from a forever task!");
+    Waveform.print ~wave_width:2 waves;
+    [%expect
+      {|
+      ┌Signals────────┐┌Waves──────────────────────────────────────────────┐
+      │clock          ││┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──│
+      │               ││   └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  └──┘  │
+      │enable         ││──────────────────────────────                     │
+      │               ││                                                   │
+      │               ││──────┬─────┬─────┬─────┬─────                     │
+      │step           ││ 01   │02   │03   │04   │05                        │
+      │               ││──────┴─────┴─────┴─────┴─────                     │
+      │               ││──────┬─────┬─────┬─────┬─────                     │
+      │q              ││ 00   │01   │03   │06   │0A                        │
+      │               ││──────┴─────┴─────┴─────┴─────                     │
+      └───────────────┘└───────────────────────────────────────────────────┘
+      |}]
+  ;;
+end
 
 (* Event driven sim *)
 

@@ -9,14 +9,21 @@ module Make (Monads : Step_monads.S) = struct
   open Monads
   module Step_monad = Step_monad
 
-  module No_data = struct
+  module I_data = struct
     type t = unit [@@deriving sexp_of]
 
     let equal _ _ = true
     let undefined = ()
   end
 
-  type 'a t = ('a, No_data.t, No_data.t) Step_monad.t
+  module O_data = struct
+    type t = unit Before_and_after_edge.t [@@deriving sexp_of]
+
+    let equal _ _ = true
+    let undefined = Before_and_after_edge.const ()
+  end
+
+  type 'a t = ('a, O_data.t, I_data.t) Step_monad.t
 
   include Monad.Make (struct
       type nonrec 'a t = 'a t
@@ -44,16 +51,17 @@ module Make (Monads : Step_monads.S) = struct
     return { Step_monad.Component_finished.output = (); result }
   ;;
 
-  type 'a finished_event = ('a, unit) Step_monad.Component_finished.t Step_monad.Event.t
+  type ('a, 'i) finished_event =
+    ('a, 'i) Step_monad.Component_finished.t Step_monad.Event.t
 
-  let spawn task =
+  let spawn (type a) (task : unit -> a t) : (a, unit) finished_event t =
     Step_monad.spawn
       [%here]
-      ~input:(module No_data)
-      ~output:(module No_data)
-      ~child_input:(fun ~parent:_ -> ())
+      ~input:(module O_data)
+      ~output:(module I_data)
+      ~child_input:(fun ~parent:_ -> Before_and_after_edge.const ())
       ~include_child_output:(fun ~parent:_ ~child:_ -> ())
-      ~start:(start task)
+      ~start:(start (fun _ -> task ()))
   ;;
 
   let wait_for (event : _ finished_event) =
@@ -72,6 +80,14 @@ module Make (Monads : Step_monads.S) = struct
       else (
         let%bind _ = cycle () in
         wait_for_with_timeout event ~timeout_in_cycles:(timeout_in_cycles - 1))
+  ;;
+
+  let forever f : never_returns t =
+    let rec loop () =
+      let%bind () = f () in
+      loop ()
+    in
+    loop ()
   ;;
 
   module List = struct
