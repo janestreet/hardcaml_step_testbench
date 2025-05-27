@@ -1,5 +1,5 @@
-Hardcaml Step Testbench
-=======================
+Step Testbench
+==============
 
 A monad for interacting with `Hardcaml.Cyclesim` based simulations.
 
