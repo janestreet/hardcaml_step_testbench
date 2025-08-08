@@ -13,7 +13,7 @@ module I = struct
     ; i1 : 'a Bit.t
     ; i2 : 'a Bit.t
     }
-  [@@deriving hardcaml ~rtlmangle:true]
+  [@@deriving hardcaml ~rtlmangle:"_"]
 end
 
 module O = struct

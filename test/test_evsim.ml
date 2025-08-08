@@ -1,7 +1,5 @@
 open! Import
-
-module Event_simulator =
-  Hardcaml_step_testbench.Functional.Event_driven_sim.Simulator.Event_simulator
+module Event_simulator = Hardcaml_step_testbench.Functional.Event_driven_sim.Simulator
 
 module _ (* Basic test *) = struct
   module I = struct
@@ -33,11 +31,7 @@ module _ (* Basic test *) = struct
   open Hardcaml.Bits
 
   let testbench _ =
-    let time () =
-      Hardcaml_step_testbench.Functional.Event_driven_sim.Simulator.Event_simulator.Async
-      .current_time
-        ()
-    in
+    let time () = Event_simulator.Async.current_time () in
     let%bind _ = Step.cycle { Step.input_hold with enable = vdd } in
     print_s [%message "Stepping 1" (time () : int)];
     let%bind _ = Step.cycle { Step.input_hold with enable = gnd } in
@@ -154,7 +148,7 @@ struct
         ; wr : 'a
         ; rd : 'a
         }
-      [@@deriving hardcaml]
+      [@@deriving hardcaml ~rtlmangle:false]
     end
 
     module O = struct
