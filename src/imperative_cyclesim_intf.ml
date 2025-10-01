@@ -21,6 +21,17 @@ module type S = sig
     -> testbench:(unit -> 'a t)
     -> 'a option
 
+  (** Identical to [run_with_timeout], but the [testbench] function takes the simulator
+      object. There is no semantical difference at all -- this is just a convenience
+      function. *)
+  val run_with_timeout'
+    :  ?update_children_after_finish:bool (** default is [false] *)
+    -> ?timeout:int (** default is [None] *)
+    -> unit
+    -> simulator:('i, 'o) Cyclesim.t
+    -> testbench:(('i, 'o) Cyclesim.t -> 'a t)
+    -> 'a option
+
   (** Run the testbench until completion. *)
   val run_until_finished
     :  ?update_children_after_finish:bool (** default is [false] *)

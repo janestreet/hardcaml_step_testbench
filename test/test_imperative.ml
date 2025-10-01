@@ -185,7 +185,7 @@ end
 
 (* Event driven sim *)
 
-module _ (* Basic test *) = struct
+module%test Basic_test = struct
   module I = struct
     type 'a t =
       { clock : 'a

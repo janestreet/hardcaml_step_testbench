@@ -54,6 +54,15 @@ let run_with_timeout
   | Some x -> Some x.result
 ;;
 
+let run_with_timeout' ?update_children_after_finish ?timeout () ~simulator ~testbench =
+  run_with_timeout
+    ?update_children_after_finish
+    ?timeout
+    ()
+    ~simulator
+    ~testbench:(fun () -> testbench simulator)
+;;
+
 let run_until_finished ?update_children_after_finish () ~simulator ~testbench =
   match run_with_timeout ?update_children_after_finish () ~simulator ~testbench with
   | Some result -> result
