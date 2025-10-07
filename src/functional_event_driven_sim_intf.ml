@@ -3,11 +3,10 @@
 
 open! Core
 open Hardcaml
-module Logic = Hardcaml_event_driven_sim.Two_state_logic
-module Simulator = Hardcaml_event_driven_sim.Make (Logic)
+open Hardcaml_event_driven_sim.Two_state_simulator
 
 module Monads = struct
-  module Input_monad = Simulator.Event_simulator.Async.Deferred
+  module Input_monad = Simulator.Async.Deferred
   module Step_monad = Digital_components.Step_monad.Make (Input_monad)
 end
 
@@ -32,9 +31,9 @@ module type S = sig
     -> ?timeout:int
     -> ?simulation_step:Simulation_step.t (** Default is [cyclesim_compatible] *)
     -> unit
-    -> clock:Logic.t Simulator.Event_simulator.Signal.t
-    -> inputs:Logic.t Simulator.Event_simulator.Signal.t I.t
-    -> outputs:Logic.t Simulator.Event_simulator.Signal.t O.t
+    -> clock:Logic.t Simulator.Signal.t
+    -> inputs:Logic.t Simulator.Signal.t I.t
+    -> outputs:Logic.t Simulator.Signal.t O.t
     -> testbench:(O_data.t -> 'a t)
     -> 'r
 
@@ -42,10 +41,10 @@ module type S = sig
       step testbench is returned. None is returned if the simulation times out.
 
       The clock signal should be driven externally - do NOT set it within the step moand. *)
-  val deferred : ('a, unit -> 'a option Simulator.Event_simulator.Async.Deferred.t) run
+  val deferred : ('a, unit -> 'a option Simulator.Async.Deferred.t) run
 
   (** Wrap an event sim in a process and wait forever after it completes. *)
-  val process : (unit, Simulator.Event_simulator.Process.t) run
+  val process : (unit, Simulator.Process.t) run
 end
 
 module M (I : Interface.S) (O : Interface.S) = struct
@@ -56,8 +55,10 @@ end
 module type Functional_event_driven_sim = sig
   module Monads = Monads
   module M = M
-  module Logic = Logic
-  module Simulator = Simulator
+
+  include
+    Hardcaml_event_driven_sim.S
+    with type Logic.t = Hardcaml_event_driven_sim.Two_state_logic.t
 
   module type S = S with module Step_monad = Monads.Step_monad
 

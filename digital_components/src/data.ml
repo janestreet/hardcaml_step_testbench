@@ -4,28 +4,28 @@ include Data_intf
 type 'd t = (module S with type t = 'd)
 
 module Bool = struct
-  type t = bool [@@deriving compare, sexp_of]
+  type t = bool [@@deriving compare ~localize, sexp_of]
 
   let equal = [%compare.equal: t]
   let undefined = false
 end
 
 module Int = struct
-  type t = int [@@deriving compare, sexp_of]
+  type t = int [@@deriving compare ~localize, sexp_of]
 
   let equal = [%compare.equal: t]
   let undefined = 0
 end
 
 module String = struct
-  type t = string [@@deriving compare, sexp_of]
+  type t = string [@@deriving compare ~localize, sexp_of]
 
   let equal = [%compare.equal: t]
   let undefined = ""
 end
 
 module Unit = struct
-  type t = unit [@@deriving compare, sexp_of]
+  type t = unit [@@deriving compare ~localize, sexp_of]
 
   let equal = [%compare.equal: t]
   let undefined = ()

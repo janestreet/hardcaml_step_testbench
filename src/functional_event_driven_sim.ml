@@ -1,8 +1,7 @@
 open! Core
 open Hardcaml
 module M = Functional_event_driven_sim_intf.M
-module Logic = Functional_event_driven_sim_intf.Logic
-module Simulator = Functional_event_driven_sim_intf.Simulator
+include Hardcaml_event_driven_sim.Two_state_simulator
 module Monads = Functional_event_driven_sim_intf.Monads
 
 module type S =
@@ -13,32 +12,30 @@ module Make (I : Interface.S) (O : Interface.S) = struct
   include Functional.Make (Monads) (I) (O)
   module Step_monad = Step_monad
 
-  let simulator_output outputs = O.map outputs ~f:Simulator.Event_simulator.Signal.read
+  let simulator_output outputs = O.map outputs ~f:Simulator.Signal.read
 
   module Simulation_step = struct
     type t =
-      Bits.t Simulator.Event_simulator.Signal.t
-      -> Bits.t Simulator.Event_simulator.Signal.t O.t
+      Bits.t Simulator.Signal.t
+      -> Bits.t Simulator.Signal.t O.t
       -> Bits.t O.t Before_and_after_edge.t Deferred.t
 
     let rec wait_for_rising_edge signal =
       let%bind.Deferred () =
-        Simulator.Event_simulator.Async.wait_for_change
-          (Simulator.Event_simulator.Signal.id signal)
+        Simulator.Async.wait_for_change (Simulator.Signal.id signal)
       in
-      if (not (Logic.to_bool (Simulator.Event_simulator.Signal.read_last signal)))
-         && Logic.to_bool (Simulator.Event_simulator.Signal.read signal)
+      if (not (Logic.to_bool (Simulator.Signal.read_last signal)))
+         && Logic.to_bool (Simulator.Signal.read signal)
       then Deferred.return ()
       else wait_for_rising_edge signal
     ;;
 
     let rec wait_for_falling_edge signal =
       let%bind.Deferred () =
-        Simulator.Event_simulator.Async.wait_for_change
-          (Simulator.Event_simulator.Signal.id signal)
+        Simulator.Async.wait_for_change (Simulator.Signal.id signal)
       in
-      if Logic.to_bool (Simulator.Event_simulator.Signal.read_last signal)
-         && not (Logic.to_bool (Simulator.Event_simulator.Signal.read signal))
+      if Logic.to_bool (Simulator.Signal.read_last signal)
+         && not (Logic.to_bool (Simulator.Signal.read signal))
       then Deferred.return ()
       else wait_for_falling_edge signal
     ;;
@@ -80,9 +77,9 @@ module Make (I : Interface.S) (O : Interface.S) = struct
     fun i ->
       I.iter2 inport_and_default i ~f:(fun (i, d) n ->
         if not (Bits.is_empty n)
-        then Simulator.Event_simulator.( <-- ) i n (* some task has specified a value *)
+        then Simulator.( <-- ) i n (* some task has specified a value *)
         else if not (Bits.is_empty d)
-        then Simulator.Event_simulator.( <-- ) i d (* use default value *)
+        then Simulator.( <-- ) i d (* use default value *)
         else (* hold previous value *)
           ());
       let%bind.Deferred outputs = simulation_step clock outputs in
@@ -100,9 +97,9 @@ module Make (I : Interface.S) (O : Interface.S) = struct
     -> ?timeout:int
     -> ?simulation_step:Simulation_step.t
     -> unit
-    -> clock:Logic.t Simulator.Event_simulator.Signal.t
-    -> inputs:Logic.t Simulator.Event_simulator.Signal.t I.t
-    -> outputs:Logic.t Simulator.Event_simulator.Signal.t O.t
+    -> clock:Logic.t Simulator.Signal.t
+    -> inputs:Logic.t Simulator.Signal.t I.t
+    -> outputs:Logic.t Simulator.Signal.t O.t
     -> testbench:(O_data.t -> 'a t)
     -> 'r
 
@@ -112,9 +109,9 @@ module Make (I : Interface.S) (O : Interface.S) = struct
     ?timeout
     ?(simulation_step = Simulation_step.cyclesim_compatible)
     ()
-    ~(clock : Logic.t Simulator.Event_simulator.Signal.t)
-    ~(inputs : Logic.t Simulator.Event_simulator.Signal.t I.t)
-    ~(outputs : Logic.t Simulator.Event_simulator.Signal.t O.t)
+    ~(clock : Logic.t Simulator.Signal.t)
+    ~(inputs : Logic.t Simulator.Signal.t I.t)
+    ~(outputs : Logic.t Simulator.Signal.t O.t)
     ~testbench
     =
     let component, result_event =
@@ -126,7 +123,7 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         ~output:(module I_data)
     in
     fun () ->
-      let open Simulator.Event_simulator.Async.Deferred.Let_syntax in
+      let open Simulator.Async.Deferred.Let_syntax in
       let%map () =
         Step_monad.Component.run_until_finished
           component
@@ -172,9 +169,9 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         ~outputs
         ~testbench
     in
-    Simulator.Event_simulator.Async.create_process (fun () ->
+    Simulator.Async.create_process (fun () ->
       let%bind.Deferred _ = testbench () in
-      let%bind.Deferred () = Simulator.Event_simulator.Async.wait_forever () in
+      let%bind.Deferred () = Simulator.Async.wait_forever () in
       Deferred.return ())
   ;;
 end

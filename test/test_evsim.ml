@@ -1,9 +1,7 @@
 open! Import
+module Event_simulator = Hardcaml_step_testbench.Functional.Event_driven_sim.Simulator
 
-module Event_simulator =
-  Hardcaml_step_testbench.Functional.Event_driven_sim.Simulator.Event_simulator
-
-module _ (* Basic test *) = struct
+module%test Basic_test = struct
   module I = struct
     type 'a t =
       { clock : 'a
@@ -33,11 +31,7 @@ module _ (* Basic test *) = struct
   open Hardcaml.Bits
 
   let testbench _ =
-    let time () =
-      Hardcaml_step_testbench.Functional.Event_driven_sim.Simulator.Event_simulator.Async
-      .current_time
-        ()
-    in
+    let time () = Event_simulator.Async.current_time () in
     let%bind _ = Step.cycle { Step.input_hold with enable = vdd } in
     print_s [%message "Stepping 1" (time () : int)];
     let%bind _ = Step.cycle { Step.input_hold with enable = gnd } in
@@ -154,7 +148,7 @@ struct
         ; wr : 'a
         ; rd : 'a
         }
-      [@@deriving hardcaml]
+      [@@deriving hardcaml ~rtlmangle:false]
     end
 
     module O = struct
@@ -300,7 +294,7 @@ struct
   ;;
 end
 
-module _ = struct
+module%test Different_clocks = struct
   let () =
     for i = 0 to 2 do
       for j = 0 to 2 do
@@ -319,7 +313,7 @@ module _ = struct
   ;;
 end
 
-module _ (* Multiple spawned things *) = struct
+module%test Multiple_spawned_things = struct
   let test_multi_spawns () =
     let module Test = Send_and_receive_testbench in
     let module Send_and_receive_testbench =
@@ -371,7 +365,7 @@ module _ (* Multiple spawned things *) = struct
   ;;
 end
 
-module _ (* Test different ways outputs are affected *) = struct
+module%test Test_different_ways_outputs_are_affected = struct
   module I = struct
     type 'a t =
       { clock : 'a
@@ -533,11 +527,11 @@ module _ (* Test different ways outputs are affected *) = struct
   end
 
   (* Run both backends.  This will fail if they dont generate the same output values. *)
-  module _ = Compare (struct
+  module%test Cyclesim = Compare (struct
       let test = test_cyclesim
     end)
 
-  module _ = Compare (struct
+  module%test Evsim = Compare (struct
       let test = test_evsim
     end)
 end

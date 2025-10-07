@@ -185,7 +185,7 @@ end
 
 (* Event driven sim *)
 
-module _ (* Basic test *) = struct
+module%test Basic_test = struct
   module I = struct
     type 'a t =
       { clock : 'a
@@ -203,9 +203,7 @@ module _ (* Basic test *) = struct
     { O.q = Signal.reg_fb spec ~enable ~width:8 ~f:(fun d -> Signal.( +:. ) d 1) }
   ;;
 
-  module Event_simulator =
-    Hardcaml_step_testbench.Imperative.Event_driven_sim.Simulator.Event_simulator
-
+  module Event_simulator = Hardcaml_step_testbench.Imperative.Event_driven_sim.Simulator
   module Step = Hardcaml_step_testbench.Imperative.Event_driven_sim
 
   module Evsim =

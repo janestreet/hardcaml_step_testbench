@@ -218,7 +218,7 @@ module Make (Input_monad : Monad.S) = struct
         { input : bool
         ; load_enable : bool
         }
-      [@@deriving compare, sexp_of]
+      [@@deriving compare ~localize, sexp_of]
 
       let equal = [%compare.equal: t]
       let undefined = { input = Data.Bool.undefined; load_enable = Data.Bool.undefined }
@@ -256,7 +256,7 @@ module Make (Input_monad : Monad.S) = struct
         ; load_enable : bool
         ; reset : bool
         }
-      [@@deriving compare, sexp_of]
+      [@@deriving compare ~localize, sexp_of]
 
       let equal = [%compare.equal: t]
 

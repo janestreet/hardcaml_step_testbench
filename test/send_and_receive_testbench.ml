@@ -16,11 +16,12 @@ module I = struct
     { clk : 'a
     ; source : 'a Source.t [@rtlprefix "i_"]
     }
-  [@@deriving hardcaml]
+  [@@deriving hardcaml ~rtlmangle:false]
 end
 
 module O = struct
-  type 'a t = { source : 'a Source.t [@rtlprefix "o_"] } [@@deriving hardcaml]
+  type 'a t = { source : 'a Source.t [@rtlprefix "o_"] }
+  [@@deriving hardcaml ~rtlmangle:false]
 end
 
 let make_circuit (i : Signal.t I.t) =
