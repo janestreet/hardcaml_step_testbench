@@ -1,6 +1,5 @@
-(** An [('a, 'i, 'o) Step_monad.t] is a description of computation that produces a value
-    of type ['a] via a sequential [Component.t] that on each step takes an ['i] and
-    produces a ['o].
+(** An effectful interface for step-based computations. The computation are expressed as
+    [(('i, 'o) Handler.t @ local -> 'a)].
 
     The [next_step] operation finishes the current step and pauses until the next step.
     The [spawn] function allows a computation to start other sequential components -- all
@@ -13,39 +12,33 @@ module type S = sig
   module Component : Component.M(Input_monad).S
   module Step_core : Step_core.M(Input_monad)(Component).S
 
-  type ('a, 'i, 'o) t = ('a, 'i, 'o) Step_core.Computation.Monadic.t [@@deriving sexp_of]
+  module Handler : sig
+    type ('i, 'o) t = ('i, 'o) Step_core.Computation.Eff.Handler.t
+  end
 
-  include Monad.S3 with type ('a, 'b, 'c) t := ('a, 'b, 'c) t
-
-  val next_step : Source_code_position.t -> 'o -> ('i, 'i, 'o) t
-  val thunk : (unit -> ('a, 'i, 'o) t) -> ('a, 'i, 'o) t
-  val output_forever : 'o -> (_, _, 'o) t
-
-  (** [for_ i j f] does [f i], [f (i+1)], ... [f j] in sequence. If [j < i], then
-      [for_ i j] immediately returns unit. *)
-  val for_ : int -> int -> (int -> (unit, 'i, 'o) t) -> (unit, 'i, 'o) t
+  val current_input : ('i, 'o) Handler.t -> 'i
+  val next_step : Source_code_position.t -> 'o -> ('i, 'o) Handler.t -> 'i
+  val thunk : (unit -> ('i, 'o) Handler.t -> 'a) -> ('i, 'o) Handler.t -> 'a
+  val output_forever : 'o -> ('i, 'o) Handler.t -> _
 
   (** [delay o ~num_steps] outputs [o] for [num_steps] and then returns unit. [delay]
       raises if [num_steps < 0]. *)
-  val delay : 'o -> num_steps:int -> (unit, _, 'o) t
+  val delay : 'o -> num_steps:int -> ('i, 'o) Handler.t -> unit
 
-  (** [repeat ~count f] does [f ()] [count] times. [repeat] raises if [count < 0]. *)
-  val repeat : count:int -> (unit -> (unit, 'i, 'o) t) -> (unit, 'i, 'o) t
-
-  val wait : output:'o -> until:('i -> bool) -> (unit, 'i, 'o) t
+  val wait : output:'o -> until:('i -> bool) -> ('i, 'o) Handler.t -> unit
 
   (** An event is a value that will at some point in time (possibly the past, possibly the
       future) transition from "undetermined" to "determined", with some value. One can
       [wait_for] an event in a computation. *)
   module Event : sig
-    type 'a t [@@deriving sexp_of]
+    type 'a t = 'a Event.t [@@deriving sexp_of]
 
     val value : 'a t -> 'a option
   end
 
   (** [wait_for event ~output] outputs [output] until the step at which [event] becomes
       determined, at which point the [wait_for] proceeds. *)
-  val wait_for : 'a Event.t -> output:'o -> ('a, _, 'o) t
+  val wait_for : 'a Event.t -> output:'o -> ('i, 'o) Handler.t -> 'a
 
   module Component_finished = Component_finished
 
@@ -59,12 +52,13 @@ module type S = sig
   val spawn
     :  ?update_children_after_finish:bool (** default is [false] *)
     -> Source_code_position.t
-    -> start:('i_c -> (('a, 'o_c) Component_finished.t, 'i_c, 'o_c) t)
+    -> start:('i_c -> ('i_c, 'o_c) Handler.t -> ('a, 'o_c) Component_finished.t)
     -> input:'i_c Data.t
     -> output:'o_c Data.t
     -> child_input:(parent:'i -> 'i_c)
     -> include_child_output:(parent:'o -> child:'o_c -> 'o)
-    -> (('a, 'o_c) Component_finished.t Event.t, 'i, 'o) t
+    -> ('i, 'o) Handler.t
+    -> ('a, 'o_c) Component_finished.t Event.t
 
   (** [create_component] creates a [Component.t] that runs the computation described by
       [start]. When [update_children_after_finish] is set to true, all component's
@@ -73,10 +67,15 @@ module type S = sig
   val create_component
     :  created_at:Source_code_position.t
     -> update_children_after_finish:bool
-    -> start:('i -> (('a, 'o) Component_finished.t, 'i, 'o) t)
+    -> start:('i -> ('i, 'o) Handler.t -> ('a, 'o) Component_finished.t)
     -> input:'i Data.t
     -> output:'o Data.t
     -> ('i, 'o) Component.t * ('a, 'o) Component_finished.t Event.t
+
+  val run_monadic_computation
+    :  ('i, 'o) Handler.t
+    -> ('a, 'i, 'o) Step_core.Computation.Monadic.t
+    -> 'a
 end
 
 module M
@@ -91,7 +90,7 @@ struct
      and module Step_core := Step_core
 end
 
-module type Step_monad = sig
+module type Step_effect = sig
   module type S = S
 
   module M = M

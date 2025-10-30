@@ -11,13 +11,14 @@ build: [
 ]
 depends: [
   "ocaml" {>= "5.1.0"}
-  "base"
   "core"
   "hardcaml"
   "hardcaml_event_driven_sim"
   "hardcaml_waveterm"
+  "oxcaml_effect"
   "ppx_jane"
   "stdio"
+  "unique"
   "dune"                      {>= "3.17.0"}
 ]
 available: arch != "arm32" & arch != "x86_32"

@@ -1,7 +1,15 @@
 open Base
 open Expect_test_helpers_core
 module Data = Digital_components.Data
-module Step_monad = Digital_components.Step_monad.Make (Monad.Ident)
+
+include struct
+  module Component = Digital_components.Component.Make (Monad.Ident)
+  module Step_core = Digital_components.Step_core.Make (Monad.Ident) (Component)
+
+  module Step_monad =
+    Digital_components.Step_monad.Make (Monad.Ident) (Component) (Step_core)
+end
+
 open Step_monad
 open! Step_monad.Let_syntax
 
@@ -519,7 +527,8 @@ let%expect_test "parent runs before child" =
      ((state (Finished ()))
       (children ((
         lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
-        ((state (Running (Bind <fun> (Bind <fun> (Bind <fun> Empty)))))
+        ((state (
+           Running (Monad_bind <fun> (Monad_bind <fun> (Monad_bind <fun> Empty)))))
          (children ())
          (output   ())))))
       (output ())))
