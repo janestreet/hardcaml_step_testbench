@@ -32,9 +32,11 @@ let make_circuit (i : Signal.t I.t) =
   { O.source = { i.source with data = count @: i.source.data.:[15, 0] } }
 ;;
 
-module Make (Monads : Hardcaml_step_testbench.Step_monads.S) = struct
-  module Tb_source = Hardcaml_step_testbench.Functional.Make (Monads) (Source) (Source)
-  module Tb = Hardcaml_step_testbench.Functional.Make (Monads) (I) (O)
+module Make (Step_modules : Hardcaml_step_testbench.Step_modules.S) = struct
+  module Tb_source =
+    Hardcaml_step_testbench.Functional.Make (Step_modules) (Source) (Source)
+
+  module Tb = Hardcaml_step_testbench.Functional.Make (Step_modules) (I) (O)
 
   let rec send_data ~first ~num_words _ : unit Tb_source.t =
     let open Tb_source.Let_syntax in
@@ -89,5 +91,64 @@ module Make (Monads : Hardcaml_step_testbench.Step_monads.S) = struct
     let%bind () = Tb.wait_for send_finished in
     let%bind recv_packet = Tb.wait_for recv_finished in
     return recv_packet
+  ;;
+end
+
+module Make_effectful (Step_modules : Hardcaml_step_testbench.Step_modules.S) = struct
+  module Tb_source =
+    Hardcaml_step_testbench_effectful.Functional.Make (Step_modules) (Source) (Source)
+
+  module Tb = Hardcaml_step_testbench_effectful.Functional.Make (Step_modules) (I) (O)
+
+  let rec send_data ~first ~num_words _ (h : Tb_source.Handler.t @ local) : unit =
+    if num_words = 0
+    then ()
+    else if Random.bool ()
+    then (
+      let source = Tb_source.cycle h Tb_source.input_zero in
+      send_data ~first ~num_words source h)
+    else (
+      let source =
+        Tb_source.cycle
+          h
+          { valid = Bits.vdd
+          ; data = Bits.of_int_trunc ~width:32 num_words
+          ; first = (if first then Bits.vdd else Bits.gnd)
+          ; last = (if num_words = 1 then Bits.vdd else Bits.gnd)
+          }
+      in
+      send_data ~first:false ~num_words:(num_words - 1) source h)
+  ;;
+
+  let rec recv_data data (output : Tb.O_data.t) (h : Tb.Handler.t @ local) : Bits.t list =
+    let source = (Tb.O_data.after_edge output).source in
+    if Bits.to_int_trunc source.valid <> 1
+    then wait_for_next_cycle data h
+    else if Bits.to_int_trunc source.first = 1
+    then wait_for_next_cycle [ source.data ] h
+    else (
+      let data = source.data :: data in
+      if Bits.to_int_trunc source.last = 1
+      then List.rev data
+      else wait_for_next_cycle data h)
+
+  and wait_for_next_cycle data h =
+    let output = Tb.cycle h Tb.input_hold in
+    recv_data data output h
+  ;;
+
+  let testbench _o h =
+    let send_finished =
+      Tb_source.spawn_io
+        ~inputs:(fun ~(parent : _ I.t) ~child ->
+          { parent with source = Tb_source.merge_inputs ~parent:parent.source ~child })
+        ~outputs:(fun parent -> parent.O.source)
+        h
+        (fun h o -> send_data ~first:true ~num_words:5 o h)
+    in
+    let recv_finished = Tb.spawn h (fun h o -> recv_data [] o h) in
+    Tb.wait_for h send_finished;
+    let recv_packet = Tb.wait_for h recv_finished in
+    recv_packet
   ;;
 end
