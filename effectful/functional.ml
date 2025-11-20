@@ -81,6 +81,7 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
 
   let spawn_io_different_outputs
     ?update_children_after_finish
+    ?period
     ~inputs
     ~outputs
     task
@@ -90,6 +91,7 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
     =
     Step_modules.Step_effect.spawn
       ?update_children_after_finish
+      ?period
       [%here]
       ~start:(fun output handler -> start handler task output)
       ~input:(module O_data)
@@ -100,19 +102,21 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
       parent_handler
   ;;
 
-  let spawn_io ?update_children_after_finish ~inputs ~outputs parent_handler task =
+  let spawn_io ?update_children_after_finish ?period ~inputs ~outputs parent_handler task =
     let outputs = Before_and_after_edge.const outputs in
     spawn_io_different_outputs
       ?update_children_after_finish
+      ?period
       ~inputs
       ~outputs
       task
       parent_handler
   ;;
 
-  let spawn ?update_children_after_finish (handler : Handler.t @ local) task =
+  let spawn ?update_children_after_finish ?period (handler : Handler.t @ local) task =
     spawn_io
       ?update_children_after_finish
+      ?period
       handler
       task
       ~outputs:Fn.id
@@ -132,6 +136,7 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
 
   let spawn_from_imperative
     ?update_children_after_finish
+    ?period
     (io_ports : _ Io_ports_for_imperative.t)
     (parent_handler :
       (unit Before_and_after_edge.t, unit) Step_modules.Step_effect.Handler.t
@@ -150,6 +155,7 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
     in
     spawn_io_different_outputs
       ?update_children_after_finish
+      ?period
       ~inputs
       ~outputs
       task
@@ -163,13 +169,19 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
 
   let exec_never_returns_from_imperative
     ?update_children_after_finish
+    ?period
     io_ports
     parent_handler
     (task : Handler.t @ local -> O_data.t -> never_returns)
     : never_returns
     =
     let ev_never_returns =
-      spawn_from_imperative ?update_children_after_finish io_ports parent_handler task
+      spawn_from_imperative
+        ?update_children_after_finish
+        ?period
+        io_ports
+        parent_handler
+        task
     in
     let finished =
       Step_modules.Step_effect.wait_for ev_never_returns ~output:() parent_handler

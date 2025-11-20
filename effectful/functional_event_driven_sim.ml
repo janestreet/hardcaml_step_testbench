@@ -119,6 +119,7 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         ~start:(fun output handler -> start handler testbench output)
         ~input:(module O_data)
         ~output:(module I_data)
+        ()
     in
     fun () ->
       let open Simulator.Async.Deferred.Let_syntax in

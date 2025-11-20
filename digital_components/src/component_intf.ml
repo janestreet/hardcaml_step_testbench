@@ -44,7 +44,15 @@ module Module = struct
     val t : t
     val created_at : Source_code_position.t
     val output : t -> Input.t -> Output.t
-    val update_state : ?prune:bool -> t -> Input.t -> unit
+
+    val update_state
+      :  ?prune:bool
+      -> parent_period:int
+      -> step_number:int
+      -> t
+      -> Input.t
+      -> unit
+
     val prune_children : t -> unit
     val has_children : t -> bool
   end
@@ -77,7 +85,13 @@ module M (Input_monad : Monad.S) = struct
     val output : ('i, 'o) t -> 'i -> 'o
 
     (** [update_state] updates [t]'s state based on an input and its current state *)
-    val update_state : ?prune:bool -> ('i, _) t -> 'i -> unit
+    val update_state
+      :  ?prune:bool
+      -> parent_period:int
+      -> step_number:int
+      -> ('i, _) t
+      -> 'i
+      -> unit
 
     (** [run_with_inputs t is] runs [length is] steps with [t], on each step calling
         [update_state] and then [output], pairing the input of that step with the output. *)

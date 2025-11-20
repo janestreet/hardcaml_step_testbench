@@ -81,6 +81,7 @@ let deferred
       ~start:(fun _ handler -> start handler (fun handler _ -> testbench handler) ())
       ~input:(module O_data)
       ~output:(module I_data)
+      ()
   in
   fun () ->
     let open Simulator.Async.Deferred.Let_syntax in

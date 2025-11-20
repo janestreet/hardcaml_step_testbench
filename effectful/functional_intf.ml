@@ -58,6 +58,7 @@ module type S = sig
          (** When [update_children_after_finish] is set to true. children tasks that have
              finished will still be updated. This will notably trigger an update on nested
              spawns. *)
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> Handler.t @ local
     -> (Handler.t @ local -> O_data.t -> 'a)
     -> ('a, I_data.t) finished_event
@@ -73,6 +74,7 @@ module type S = sig
       See documentation of [spawn] for an explaination of [update_children_after_finish]. *)
   val spawn_io
     :  ?update_children_after_finish:bool
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> inputs:(parent:'i -> child:I_data.t -> 'i)
     -> outputs:('o -> Bits.t O.t)
     -> ('o Before_and_after_edge.t, 'i) Step_effect.Handler.t @ local
@@ -90,6 +92,7 @@ module type S = sig
       from a task that's using the imperative step testbench. *)
   val spawn_from_imperative
     :  ?update_children_after_finish:bool
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> (Bits.t ref I.t, Bits.t ref O.t) Io_ports_for_imperative.t
     -> (unit Before_and_after_edge.t, unit) Step_effect.Handler.t @ local
     -> (Handler.t @ local -> O_data.t -> 'a)
@@ -102,6 +105,7 @@ module type S = sig
       with nicer types. *)
   val exec_never_returns_from_imperative
     :  ?update_children_after_finish:bool
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> (Bits.t ref I.t, Bits.t ref O.t) Io_ports_for_imperative.t
     -> (unit Before_and_after_edge.t, unit) Step_effect.Handler.t @ local
     -> (Handler.t @ local -> O_data.t -> never_returns)

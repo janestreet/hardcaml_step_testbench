@@ -31,7 +31,7 @@ struct
     let%tydi { aliased_many = result } =
       Step_core.Computation.Eff.perform
         handler
-        (Step_core.Computation.Effect_ops.Next_step (here, o))
+        (Step_core.Computation.Effect_ops.Next_period (here, o))
     in
     result
   ;;
@@ -73,11 +73,13 @@ struct
 
   let create_component
     (type a i o)
+    ?period
     ~created_at
     ~update_children_after_finish
     ~(start : i -> (i, o) Handler.t @ local -> (a, o) Component_finished.t)
     ~(input : i Data.t)
     ~(output : o Data.t)
+    ()
     : (i, o) Component.t * (a, o) Component_finished.t Event.t
     =
     let component_finished = Event.create () in
@@ -102,8 +104,14 @@ struct
 
           let output (t : t) _ = Runner.output t
 
-          let update_state ?prune =
-            Runner.update_state ?prune ~update_children_after_finish
+          let update_state ?prune ~parent_period ~step_number t =
+            let period = Option.value ~default:parent_period period in
+            Runner.update_state
+              ?prune
+              ~update_children_after_finish
+              ~period
+              ~step_number
+              t
           ;;
 
           let prune_children = Runner.prune_children
@@ -115,6 +123,7 @@ struct
 
   let spawn
     ?(update_children_after_finish = false)
+    ?period
     created_at
     ~start
     ~input
@@ -124,7 +133,14 @@ struct
     (handler : ('i, 'o) Handler.t @ local)
     =
     let child, child_finished =
-      create_component ~update_children_after_finish ~created_at ~start ~input ~output
+      create_component
+        ?period
+        ~update_children_after_finish
+        ~created_at
+        ~start
+        ~input
+        ~output
+        ()
     in
     let monadic_spawn =
       Step_core.Computation.Monadic.Spawn

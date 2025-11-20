@@ -1,4 +1,4 @@
-[@@@alert "-experimental"]
+[@@@alert "-experimental_runtime5"]
 
 open Core
 include Step_core_intf
@@ -10,7 +10,7 @@ module Make (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = s
     type ('a, 'i, 'o) monadic =
       | Bind : ('a, 'i, 'o) monadic * ('a -> ('b, 'i, 'o) monadic) -> ('b, 'i, 'o) monadic
       | Current_input : ('i, 'i, 'o) monadic
-      | Next_step : Source_code_position.t * 'o -> ('i, 'i, 'o) monadic
+      | Next_period : Source_code_position.t * 'o -> ('i, 'i, 'o) monadic
       | Return : 'a -> ('a, _, _) monadic
       | Thunk : (unit -> ('a, 'i, 'o) monadic) -> ('a, 'i, 'o) monadic
       | Spawn :
@@ -22,7 +22,7 @@ module Make (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = s
           -> (unit, 'i, 'o) monadic
 
     and ('a, 'i, 'o, 'eff) effect_ops =
-      | Next_step :
+      | Next_period :
           Source_code_position.t * 'o
           -> ('i aliased_many, 'i, 'o, 'eff) effect_ops
       | Exec_monadic :
@@ -35,7 +35,7 @@ module Make (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = s
         type ('a, 'i, 'o) t = ('a, 'i, 'o) monadic =
           | Bind : ('a, 'i, 'o) t * ('a -> ('b, 'i, 'o) t) -> ('b, 'i, 'o) t
           | Current_input : ('i, 'i, 'o) t
-          | Next_step : Source_code_position.t * 'o -> ('i, 'i, 'o) t
+          | Next_period : Source_code_position.t * 'o -> ('i, 'i, 'o) t
           | Return : 'a -> ('a, _, _) t
           | Thunk : (unit -> ('a, 'i, 'o) t) -> ('a, 'i, 'o) t
           | Spawn :
@@ -58,7 +58,9 @@ module Make (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = s
 
     module Effect_ops = struct
       type ('a, 'i, 'o, 'effect) t = ('a, 'i, 'o, 'effect) effect_ops =
-        | Next_step : Source_code_position.t * 'o -> ('i aliased_many, 'i, 'o, 'effect) t
+        | Next_period :
+            Source_code_position.t * 'o
+            -> ('i aliased_many, 'i, 'o, 'effect) t
         | Exec_monadic : ('a, 'i, 'o) monadic -> ('a aliased_many, 'i, 'o, 'effect) t
     end
 
@@ -72,8 +74,8 @@ module Make (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = s
   end
 
   module Runner = struct
-    (* An [('a, 'i, 'o) Continuation.t] is a computation awaiting a value of type ['a].
-       It is analogous to a call stack. *)
+    (* An [('a, 'i, 'o) Continuation.t] is a computation awaiting a value of type ['a]. It
+       is analogous to a call stack. *)
 
     module Continuation = struct
       type ('a, 'i, 'o) t =
@@ -95,7 +97,14 @@ module Make (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = s
     module State = struct
       type ('i, 'o) t =
         | Finished of 'o
-        | Running of ('i, 'i, 'o) Continuation.t
+        | Running of
+            { num_steps_to_stall : int
+            ; continuation : ('i, 'i, 'o) Continuation.t
+            }
+        | Initial_alignment of
+            { num_steps_to_stall : int
+            ; start : 'i -> ('o, 'i, 'o) Computation.t
+            }
         | Unstarted of ('i -> ('o, 'i, 'o) Computation.t)
       [@@deriving sexp_of]
     end
@@ -152,9 +161,17 @@ module Make (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = s
       (type i o)
       ?(prune = false)
       ~update_children_after_finish
+      ~period
+      ~step_number
       (t : (i, o) t)
       (current_input : i)
       =
+      (* Wait until the next [step_number] is at least [period] away and is also a
+         multiple of [period] *)
+
+      (* [Initial_alignment] on startup ensures that we are aligned with the period, so it
+         is always safe to step the full requested period on [Next_period] *)
+      let next_period_steps_to_stall = period - 1 in
       let rec step
         : type a.
           (a, i, o) Computation.t
@@ -178,11 +195,14 @@ module Make (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = s
         | Exception exn -> raise exn
         | Operation (effect, k) ->
           (match effect with
-           | Next_step (_, o) ->
+           | Next_period (_, o) ->
              { output = o
              ; next_state =
                  Running
-                   (Continuation.Effect_continuation (Unique.Once.make k, continuation))
+                   { num_steps_to_stall = next_period_steps_to_stall
+                   ; continuation =
+                       Continuation.Effect_continuation (Unique.Once.make k, continuation)
+                   }
              }
            | Exec_monadic monad ->
              handle_monad
@@ -198,7 +218,11 @@ module Make (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = s
         match computation with
         | Bind (computation, f) -> handle_monad computation (Monad_bind (f, continuation))
         | Current_input -> continue continuation { aliased_many = current_input }
-        | Next_step (_, output) -> { output; next_state = Running continuation }
+        | Next_period (_, output) ->
+          { output
+          ; next_state =
+              Running { num_steps_to_stall = next_period_steps_to_stall; continuation }
+          }
         | Return a -> continue continuation { aliased_many = a }
         | Thunk f -> handle_monad (f ()) continuation
         | Spawn { child; child_finished; child_input; include_child_output } ->
@@ -226,11 +250,42 @@ module Make (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = s
             (Effect.continue (Unique.Once.get_exn computation_to_resume) a [])
             continuation
       in
+      let[@inline always] maybe_stall ~num_steps_to_stall ~f ~stall =
+        assert (num_steps_to_stall >= 0);
+        match num_steps_to_stall with
+        | 0 -> f ()
+        | _ -> stall ~num_steps_to_stall:(num_steps_to_stall - 1)
+      in
+      let[@inline always] start_updates ~start = step (start current_input) Empty in
       let%tydi { output; next_state } =
         match t.state with
         | Finished output -> { output; next_state = Finished output }
-        | Running continuation -> continue continuation { aliased_many = current_input }
-        | Unstarted start -> step (start current_input) Empty
+        | Running { num_steps_to_stall; continuation } ->
+          maybe_stall
+            ~num_steps_to_stall
+            ~f:(fun () -> continue continuation { aliased_many = current_input })
+            ~stall:(fun ~num_steps_to_stall ->
+              { output = t.output
+              ; next_state = Running { num_steps_to_stall; continuation }
+              })
+        | Initial_alignment { num_steps_to_stall; start } ->
+          maybe_stall
+            ~num_steps_to_stall
+            ~f:(fun () -> start_updates ~start)
+            ~stall:(fun ~num_steps_to_stall ->
+              { output = t.output
+              ; next_state = Initial_alignment { num_steps_to_stall; start }
+              })
+        | Unstarted start ->
+          let offset = step_number % period in
+          if offset = 0
+          then start_updates ~start
+          else (
+            (* Stall until we are aligned with the period *)
+            let num_steps_to_stall = period - offset - 1 in
+            { output = t.output
+            ; next_state = Initial_alignment { num_steps_to_stall; start }
+            })
       in
       t.state <- next_state;
       if prune then prune_children t;
@@ -241,7 +296,11 @@ module Make (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = s
            then output
            else (
              let child_input = child.child_input ~parent:current_input in
-             Component.update_state child.component child_input;
+             Component.update_state
+               child.component
+               child_input
+               ~parent_period:period
+               ~step_number;
              let child_output = Component.output child.component child_input in
              child.include_child_output ~parent:output ~child:child_output))
     ;;

@@ -35,16 +35,21 @@ let create_component ~update_children_after_finish testbench =
 
 let run_with_timeout
   ?(update_children_after_finish = false)
+  ?show_steps
   ?timeout
   ()
   ~simulator
   ~testbench
   =
   let component, result_event =
-    create_component ~update_children_after_finish (fun handler (_ : O_data.t) ->
-      testbench handler)
+    create_component
+      ~update_children_after_finish
+      (fun handler (_ : O_data.t) -> testbench handler)
+      ()
   in
+  Cyclesim.cycle_until_clocks_aligned simulator;
   Step_effect.Component.run_until_finished
+    ?show_steps
     component
     ~first_input:O_data.undefined
     ~next_input:(Staged.unstage (next_input timeout simulator result_event));
@@ -53,17 +58,27 @@ let run_with_timeout
   | Some x -> Some x.result
 ;;
 
-let run_with_timeout' ?update_children_after_finish ?timeout () ~simulator ~testbench =
+let run_with_timeout'
+  ?update_children_after_finish
+  ?show_steps
+  ?timeout
+  ()
+  ~simulator
+  ~testbench
+  =
   run_with_timeout
     ?update_children_after_finish
+    ?show_steps
     ?timeout
     ()
     ~simulator
     ~testbench:(fun handler -> testbench handler simulator)
 ;;
 
-let run_until_finished ?update_children_after_finish () ~simulator ~testbench =
-  match run_with_timeout ?update_children_after_finish () ~simulator ~testbench with
+let run_until_finished ?update_children_after_finish ?show_steps () ~simulator ~testbench =
+  match
+    run_with_timeout ?update_children_after_finish ?show_steps () ~simulator ~testbench
+  with
   | Some result -> result
   | None -> raise_s [%message "Step testbench did not complete with a result."]
 ;;
@@ -82,6 +97,7 @@ let wrap ?(show_steps = false) ~when_to_evaluate_testbenches ~testbenches simula
         create_component
           ~update_children_after_finish:false
           (fun handler (_ : O_data.t) -> testbench handler)
+          ()
       in
       let step_function =
         Staged.unstage (Step_effect.Component.create_step_function ~show_steps component)

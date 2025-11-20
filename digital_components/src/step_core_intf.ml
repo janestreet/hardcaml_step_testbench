@@ -10,7 +10,7 @@ module M (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = stru
         type ('a, 'i, 'o) t =
           | Bind : ('a, 'i, 'o) t * ('a -> ('b, 'i, 'o) t) -> ('b, 'i, 'o) t
           | Current_input : ('i, 'i, 'o) t
-          | Next_step : Source_code_position.t * 'o -> ('i, 'i, 'o) t
+          | Next_period : Source_code_position.t * 'o -> ('i, 'i, 'o) t
           | Return : 'a -> ('a, _, _) t
           | Thunk : (unit -> ('a, 'i, 'o) t) -> ('a, 'i, 'o) t
           | Spawn :
@@ -27,7 +27,7 @@ module M (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = stru
 
       and Effect_ops : sig
         type ('a, 'i, 'o, 'effect) t =
-          | Next_step :
+          | Next_period :
               Source_code_position.t * 'o
               -> ('i aliased_many, 'i, 'o, 'effect) t
           | Exec_monadic : ('a, 'i, 'o) Monadic.t -> ('a aliased_many, 'i, 'o, 'effect) t
@@ -41,8 +41,8 @@ module M (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = stru
         | Effectful of (('i, 'o) Eff.Handler.t @ local -> 'a)
     end
 
-    (* A [Runner.t] is a stateful value that can run a [Computation.t] one step at a time, and has
-     an interface like [Component.S]. *)
+    (* A [Runner.t] is a stateful value that can run a [Computation.t] one step at a time,
+       and has an interface like [Component.S]. *)
     module Runner : sig
       type ('i, 'o) t [@@deriving sexp_of]
 
@@ -63,6 +63,8 @@ module M (Input_monad : Monad.S) (Component : Component.M(Input_monad).S) = stru
       val update_state
         :  ?prune:bool
         -> update_children_after_finish:bool
+        -> period:int
+        -> step_number:int
         -> ('i, 'o) t
         -> 'i
         -> unit

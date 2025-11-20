@@ -85,6 +85,7 @@ let deferred
       ~start:(start (fun _ -> testbench ()))
       ~input:(module O_data)
       ~output:(module I_data)
+      ()
   in
   fun () ->
     let open Simulator.Async.Deferred.Let_syntax in

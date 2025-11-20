@@ -527,7 +527,7 @@ module%test Test_different_ways_outputs_are_affected = struct
     ;;
   end
 
-  (* Run both backends.  This will fail if they dont generate the same output values. *)
+  (* Run both backends. This will fail if they dont generate the same output values. *)
   module%test Cyclesim = Compare (struct
       let test = test_cyclesim
     end)

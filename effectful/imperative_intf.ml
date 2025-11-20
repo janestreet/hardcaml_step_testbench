@@ -31,7 +31,8 @@ module type S = sig
 
   (** Launch a new task within the current simulation step. *)
   val spawn
-    :  Handler.t @ local
+    :  ?period:int (** defaults to the period of the parent at run time *)
+    -> Handler.t @ local
     -> (Handler.t @ local -> unit -> 'a)
     -> ('a, unit) finished_event
 

@@ -62,7 +62,9 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         ~start:(fun output handler -> start handler testbench output)
         ~input:(module O_data)
         ~output:(module I_data)
+        ()
     in
+    Cyclesim.cycle_until_clocks_aligned simulator;
     Step_effect.Component.run_until_finished
       component
       ?show_steps

@@ -56,6 +56,7 @@ module type S = sig
       will be executed even after [start] completes. *)
   val spawn
     :  ?update_children_after_finish:bool (** default is [false] *)
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> Source_code_position.t
     -> start:('i_c -> ('i_c, 'o_c) Handler.t @ local -> ('a, 'o_c) Component_finished.t)
     -> input:'i_c Data.t
@@ -70,11 +71,13 @@ module type S = sig
       children will be updated even after the child terminates. This will result in tasks
       spawned from within the child task to execute even after the child terminates. *)
   val create_component
-    :  created_at:Source_code_position.t
+    :  ?period:int (** defaults to the period of the parent at run time *)
+    -> created_at:Source_code_position.t
     -> update_children_after_finish:bool
     -> start:('i -> ('i, 'o) Handler.t @ local -> ('a, 'o) Component_finished.t)
     -> input:'i Data.t
     -> output:'o Data.t
+    -> unit
     -> ('i, 'o) Component.t * ('a, 'o) Component_finished.t Event.t
 
   val run_monadic_computation

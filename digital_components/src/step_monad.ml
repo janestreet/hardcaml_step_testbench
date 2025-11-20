@@ -17,7 +17,7 @@ struct
 
   let current_input = Current_input
   let thunk f = Thunk f
-  let next_step here o = Next_step (here, o)
+  let next_step here o = Next_period (here, o)
 
   let output_forever output =
     let rec loop () =
@@ -95,11 +95,13 @@ struct
 
   let create_component
     (type a i o)
+    ?period
     ~created_at
     ~update_children_after_finish
     ~(start : i -> ((a, o) Component_finished.t, i, o) t)
     ~(input : i Data.t)
     ~(output : o Data.t)
+    ()
     : (i, o) Component.t * (a, o) Component_finished.t Event.t
     =
     let component_finished = Event.create () in
@@ -123,8 +125,14 @@ struct
 
           let output (t : t) _ = Runner.output t
 
-          let update_state ?prune =
-            Runner.update_state ?prune ~update_children_after_finish
+          let update_state ?prune ~parent_period ~step_number t =
+            let period = Option.value ~default:parent_period period in
+            Runner.update_state
+              ?prune
+              ~update_children_after_finish
+              ~period
+              ~step_number
+              t
           ;;
 
           let prune_children = Runner.prune_children
@@ -136,6 +144,7 @@ struct
 
   let spawn
     ?(update_children_after_finish = false)
+    ?period
     created_at
     ~start
     ~input
@@ -145,7 +154,14 @@ struct
     =
     thunk (fun () ->
       let child, child_finished =
-        create_component ~update_children_after_finish ~created_at ~start ~input ~output
+        create_component
+          ?period
+          ~update_children_after_finish
+          ~created_at
+          ~start
+          ~input
+          ~output
+          ()
       in
       let%bind () = Spawn { child; child_finished; child_input; include_child_output } in
       return child_finished)

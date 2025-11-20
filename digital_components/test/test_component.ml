@@ -72,13 +72,13 @@ let%expect_test "[flip_flop]" =
     {| (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop false)) |}];
   show_output t;
   [%expect {| false |}];
-  update_state t true;
+  update_state t true ~parent_period:1 ~step_number:1;
   show t;
   [%expect
     {| (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop true)) |}];
   show_output t;
   [%expect {| true |}];
-  update_state t false;
+  update_state t false ~parent_period:1 ~step_number:2;
   show t;
   [%expect
     {| (lib/hardcaml/digital_components/src/component.ml:LINE:COL (Flip_flop false)) |}];

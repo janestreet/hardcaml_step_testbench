@@ -39,15 +39,18 @@ let create_component ~update_children_after_finish testbench =
 
 let run_with_timeout
   ?(update_children_after_finish = false)
+  ?show_steps
   ?timeout
   ()
   ~simulator
   ~testbench
   =
   let component, result_event =
-    create_component ~update_children_after_finish (fun (_ : O_data.t) -> testbench ())
+    create_component ~update_children_after_finish (fun (_ : O_data.t) -> testbench ()) ()
   in
+  Cyclesim.cycle_until_clocks_aligned simulator;
   Step_monad.Component.run_until_finished
+    ?show_steps
     component
     ~first_input:O_data.undefined
     ~next_input:(Staged.unstage (next_input timeout simulator result_event));
@@ -56,17 +59,27 @@ let run_with_timeout
   | Some x -> Some x.result
 ;;
 
-let run_with_timeout' ?update_children_after_finish ?timeout () ~simulator ~testbench =
+let run_with_timeout'
+  ?update_children_after_finish
+  ?show_steps
+  ?timeout
+  ()
+  ~simulator
+  ~testbench
+  =
   run_with_timeout
     ?update_children_after_finish
+    ?show_steps
     ?timeout
     ()
     ~simulator
     ~testbench:(fun () -> testbench simulator)
 ;;
 
-let run_until_finished ?update_children_after_finish () ~simulator ~testbench =
-  match run_with_timeout ?update_children_after_finish () ~simulator ~testbench with
+let run_until_finished ?update_children_after_finish ?show_steps () ~simulator ~testbench =
+  match
+    run_with_timeout ?update_children_after_finish ?show_steps () ~simulator ~testbench
+  with
   | Some result -> result
   | None -> raise_s [%message "Step testbench did not complete with a result."]
 ;;
@@ -82,8 +95,10 @@ let wrap ?(show_steps = false) ~when_to_evaluate_testbenches ~testbenches simula
   let wrapped_testbenches =
     Core.List.map testbenches ~f:(fun testbench ->
       let component, result_event =
-        create_component ~update_children_after_finish:false (fun (_ : O_data.t) ->
-          testbench ())
+        create_component
+          ~update_children_after_finish:false
+          (fun (_ : O_data.t) -> testbench ())
+          ()
       in
       let step_function =
         Staged.unstage (Step_monad.Component.create_step_function ~show_steps component)

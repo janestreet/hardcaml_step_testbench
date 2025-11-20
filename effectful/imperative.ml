@@ -48,11 +48,16 @@ module Make (Step_modules : Step_modules.S) = struct
     ('a, 'i) Step_modules.Step_effect.Component_finished.t
       Step_modules.Step_effect.Event.t
 
-  let spawn (type a) (handler : Handler.t @ local) (task : Handler.t @ local -> unit -> a)
+  let spawn
+    (type a)
+    ?period
+    (handler : Handler.t @ local)
+    (task : Handler.t @ local -> unit -> a)
     : (a, unit) finished_event
     =
     Step_modules.Step_effect.spawn
       [%here]
+      ?period
       ~start:(fun (_ : O_data.t) handler ->
         start handler (fun handler _ -> task handler ()) ())
       ~input:(module O_data)

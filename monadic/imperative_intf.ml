@@ -30,7 +30,10 @@ module type S = sig
     ('a, 'i) Step_monad.Component_finished.t Step_monad.Event.t
 
   (** Launch a new task within the current simulation step. *)
-  val spawn : (unit -> 'a t) -> ('a, unit) finished_event t
+  val spawn
+    :  ?period:int (** defaults to the period of the parent at run time *)
+    -> (unit -> 'a t)
+    -> ('a, unit) finished_event t
 
   (** Wait for the given event to occur, and extract its return value. *)
   val wait_for : ('a, 'i) finished_event -> 'a t

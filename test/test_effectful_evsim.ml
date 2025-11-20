@@ -88,10 +88,10 @@ module%test [@tags "runtime5-only"] _ = struct
     ;;
   end
 
-  (* This test uses multiple different clocks to drive a simple hardcaml fifo, and tried to
-   show a bug in the event driven simulator. That issue was seemingly something else
-   related to the old implementation of async fifos, but is kept here as a general test
-   for the simulator. *)
+  (* This test uses multiple different clocks to drive a simple hardcaml fifo, and tried
+     to show a bug in the event driven simulator. That issue was seemingly something else
+     related to the old implementation of async fifos, but is kept here as a general test
+     for the simulator. *)
   module Make_fifo_test (X : sig
       val rd_clk : int
       val wr_clk : int
@@ -399,8 +399,8 @@ module%test [@tags "runtime5-only"] _ = struct
       [@@deriving hardcaml]
     end
 
-    (* This tries to model the various ways inputs, registers, comb logic etc affect outputs
-     in the simulation step. *)
+    (* This tries to model the various ways inputs, registers, comb logic etc affect
+       outputs in the simulation step. *)
     let create_fn { I.clock; clear; d } =
       let open Signal in
       let spec = Reg_spec.create ~clock ~clear () in
@@ -546,7 +546,7 @@ module%test [@tags "runtime5-only"] _ = struct
       ;;
     end
 
-    (* Run both backends.  This will fail if they dont generate the same output values. *)
+    (* Run both backends. This will fail if they dont generate the same output values. *)
     module%test Cyclesim = Compare (struct
         let test = test_cyclesim
       end)

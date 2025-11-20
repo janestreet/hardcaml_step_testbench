@@ -5,10 +5,10 @@ module%test [@tags "runtime5-only"] _ = struct
   module Cyclesim_step_modules =
     Hardcaml_step_testbench_effectful.Functional.Cyclesim.Step_modules
 
-  (* Run an example with 2 tasks.  One task generates a packet framed by a randomly
-   generated [valid] signal.  The second task receives the packet.  The data is
-   modified by the hardware model by inserting a word count within the upper 16 bits.
-   The received packet is shown. *)
+  (* Run an example with 2 tasks. One task generates a packet framed by a randomly
+     generated [valid] signal. The second task receives the packet. The data is modified
+     by the hardware model by inserting a word count within the upper 16 bits. The
+     received packet is shown. *)
   let%expect_test "testbench" =
     let module Effectful =
       Send_and_receive_testbench.Make_effectful (Cyclesim_step_modules)
@@ -78,9 +78,9 @@ module%test [@tags "runtime5-only"] _ = struct
         let o_after_edge = Tb.O_data.after_edge o in
         get_outputs h (count - 1) (Data.map o_after_edge ~f:Bits.to_int_trunc :: data))
     in
-    (* All combinations of setting ports at 4 levels.  Deepest child should always win.  The
-     [a] and [b] ports are set identically, but treated differently by the [input_default]
-     argument to [run]. *)
+    (* All combinations of setting ports at 4 levels. Deepest child should always win. The
+       [a] and [b] ports are set identically, but treated differently by the
+       [input_default] argument to [run]. *)
     let levels = 4 in
     let width = 8 in
     let data =

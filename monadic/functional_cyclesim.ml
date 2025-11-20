@@ -66,7 +66,9 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         ~start:(start testbench)
         ~input:(module O_data)
         ~output:(module I_data)
+        ()
     in
+    Cyclesim.cycle_until_clocks_aligned simulator;
     Step_monad.Component.run_until_finished
       component
       ?show_steps

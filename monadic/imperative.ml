@@ -55,9 +55,10 @@ module Make (Step_modules : Step_modules.S) = struct
   type ('a, 'i) finished_event =
     ('a, 'i) Step_monad.Component_finished.t Step_monad.Event.t
 
-  let spawn (type a) (task : unit -> a t) : (a, unit) finished_event t =
+  let spawn (type a) ?period (task : unit -> a t) : (a, unit) finished_event t =
     Step_monad.spawn
       [%here]
+      ?period
       ~input:(module O_data)
       ~output:(module I_data)
       ~child_input:(fun ~parent:_ ->
