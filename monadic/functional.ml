@@ -6,12 +6,11 @@ module type S = Functional_intf.S
 
 module M = Functional_intf.M
 
-module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) = struct
-  open Step_modules
+module Make (I : Interface.S) (O : Interface.S) = struct
   module I = I
   module O = O
   module Io_ports_for_imperative = Hardcaml_step_testbench_kernel.Io_ports_for_imperative
-  module Before_and_after_edge = Hardcaml_step_testbench_kernel.Before_and_after_edge
+  module Before_and_after_edge = Before_and_after_edge
 
   module Interface_as_data (I : Interface.S) :
     Digital_components.Data.S with type t = Bits.t I.t = struct
@@ -70,7 +69,7 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
   ;;
 
   let for_ lo hi f = Step_monad.for_ lo hi f
-  let delay i ~num_cycles = Step_monad.delay i ~num_steps:num_cycles
+  let delay ?(num_cycles = 1) i = Step_monad.delay i ~num_steps:num_cycles
 
   let merge_inputs ~parent ~child =
     I.map2 parent child ~f:(fun p c -> if Bits.is_empty c then p else c)
@@ -84,9 +83,16 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
     return { Step_monad.Component_finished.output = I_data.undefined; result }
   ;;
 
-  let spawn_io_different_outputs ?update_children_after_finish ~inputs ~outputs task =
+  let spawn_io_different_outputs
+    ?update_children_after_finish
+    ?period
+    ~inputs
+    ~outputs
+    task
+    =
     Step_monad.spawn
       ?update_children_after_finish
+      ?period
       [%here]
       ~input:(module O_data)
       ~output:(module I_data)
@@ -96,13 +102,18 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
       ~start:(start task)
   ;;
 
-  let spawn_io ?update_children_after_finish ~inputs ~outputs task =
+  let spawn_io ?update_children_after_finish ?period ~inputs ~outputs task =
     let outputs = Before_and_after_edge.const outputs in
-    spawn_io_different_outputs ?update_children_after_finish ~inputs ~outputs task
+    spawn_io_different_outputs ?update_children_after_finish ?period ~inputs ~outputs task
   ;;
 
-  let spawn ?update_children_after_finish task =
-    spawn_io ?update_children_after_finish task ~outputs:Fn.id ~inputs:merge_inputs
+  let spawn ?update_children_after_finish ?period task =
+    spawn_io
+      ?update_children_after_finish
+      ?period
+      task
+      ~outputs:Fn.id
+      ~inputs:merge_inputs
   ;;
 
   let create_io_ports_for_imperative simulator ~inputs ~outputs =
@@ -118,6 +129,7 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
 
   let spawn_from_imperative
     ?update_children_after_finish
+    ?period
     (io_ports : _ Io_ports_for_imperative.t)
     task
     =
@@ -129,7 +141,7 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
     let outputs =
       Before_and_after_edge.map outputs_ref ~f:(fun dst () -> O.map ~f:( ! ) dst)
     in
-    spawn_io_different_outputs ?update_children_after_finish ~inputs ~outputs task
+    spawn_io_different_outputs ?update_children_after_finish ?period ~inputs ~outputs task
   ;;
 
   let wait_for (event : _ finished_event) =
@@ -139,12 +151,13 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
 
   let exec_never_returns_from_imperative
     ?update_children_after_finish
+    ?period
     io_ports
     (task : O_data.t -> never_returns t)
     : (never_returns, unit Before_and_after_edge.t, unit) Step_monad.t
     =
     let%bind.Step_monad ev_never_returns =
-      spawn_from_imperative ?update_children_after_finish io_ports task
+      spawn_from_imperative ?update_children_after_finish ?period io_ports task
     in
     let%bind.Step_monad _ = Step_monad.wait_for ev_never_returns ~output:() in
     raise_s
@@ -182,6 +195,10 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
     forever (fun () ->
       let%bind _ = cycle input_hold in
       return ())
+  ;;
+
+  let run_effectful_computation computation =
+    Step_monad.run_effectful_computation computation
   ;;
 
   module List = struct

@@ -88,10 +88,10 @@ module%test [@tags "runtime5-only"] _ = struct
     ;;
   end
 
-  (* This test uses multiple different clocks to drive a simple hardcaml fifo, and tried to
-   show a bug in the event driven simulator. That issue was seemingly something else
-   related to the old implementation of async fifos, but is kept here as a general test
-   for the simulator. *)
+  (* This test uses multiple different clocks to drive a simple hardcaml fifo, and tried
+     to show a bug in the event driven simulator. That issue was seemingly something else
+     related to the old implementation of async fifos, but is kept here as a general test
+     for the simulator. *)
   module Make_fifo_test (X : sig
       val rd_clk : int
       val wr_clk : int
@@ -327,10 +327,7 @@ module%test [@tags "runtime5-only"] _ = struct
   module%test Multiple_spawned_things = struct
     let test_multi_spawns () =
       let module Test = Send_and_receive_testbench in
-      let module Send_and_receive_testbench =
-        Test.Make_effectful
-          (Hardcaml_step_testbench_effectful.Functional.Event_driven_sim.Step_modules)
-      in
+      let module Send_and_receive_testbench = Test.Effectful in
       let module Evstep =
         Hardcaml_step_testbench_effectful.Functional.Event_driven_sim.Make
           (Test.I)
@@ -399,8 +396,8 @@ module%test [@tags "runtime5-only"] _ = struct
       [@@deriving hardcaml]
     end
 
-    (* This tries to model the various ways inputs, registers, comb logic etc affect outputs
-     in the simulation step. *)
+    (* This tries to model the various ways inputs, registers, comb logic etc affect
+       outputs in the simulation step. *)
     let create_fn { I.clock; clear; d } =
       let open Signal in
       let spec = Reg_spec.create ~clock ~clear () in
@@ -412,10 +409,8 @@ module%test [@tags "runtime5-only"] _ = struct
       }
     ;;
 
-    module Testbench (Step_modules : Hardcaml_step_testbench_effectful.Step_modules.S) =
-    struct
-      module Step =
-        Hardcaml_step_testbench_effectful.Functional.Make (Step_modules) (I) (O)
+    module Testbench = struct
+      module Step = Hardcaml_step_testbench_effectful.Functional.Make (I) (O)
 
       let testbench (o : Step.O_data.t) (h : Step.Handler.t) =
         print_s [%message (o : Step.O_data.t)];
@@ -432,10 +427,6 @@ module%test [@tags "runtime5-only"] _ = struct
     end
 
     let test_evsim () =
-      let module Testbench =
-        Testbench
-          (Hardcaml_step_testbench_effectful.Functional.Event_driven_sim.Step_modules)
-      in
       let module Evstep =
         Hardcaml_step_testbench_effectful.Functional.Event_driven_sim.Make (I) (O)
       in
@@ -468,9 +459,6 @@ module%test [@tags "runtime5-only"] _ = struct
     ;;
 
     let test_cyclesim () =
-      let module Testbench =
-        Testbench (Hardcaml_step_testbench_effectful.Functional.Cyclesim.Step_modules)
-      in
       let module Step = Hardcaml_step_testbench_effectful.Functional.Cyclesim.Make (I) (O)
       in
       let module Sim = Cyclesim.With_interface (I) (O) in
@@ -546,7 +534,7 @@ module%test [@tags "runtime5-only"] _ = struct
       ;;
     end
 
-    (* Run both backends.  This will fail if they dont generate the same output values. *)
+    (* Run both backends. This will fail if they dont generate the same output values. *)
     module%test Cyclesim = Compare (struct
         let test = test_cyclesim
       end)

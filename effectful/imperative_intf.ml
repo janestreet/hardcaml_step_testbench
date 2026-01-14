@@ -9,9 +9,6 @@ module type S = sig
   module O_data :
     Data.S with type t = unit Hardcaml_step_testbench_kernel.Before_and_after_edge.t
 
-  module Step_modules : Step_modules.S
-  module Step_effect := Step_modules.Step_effect
-
   module Handler : sig
     type t = (O_data.t, I_data.t) Step_effect.Handler.t
   end
@@ -30,7 +27,11 @@ module type S = sig
     ('a, 'i) Step_effect.Component_finished.t Step_effect.Event.t
 
   (** Launch a new task within the current simulation step. *)
-  val spawn : Handler.t -> (Handler.t -> unit -> 'a) -> ('a, unit) finished_event
+  val spawn
+    :  ?period:int (** defaults to the period of the parent at run time *)
+    -> Handler.t
+    -> (Handler.t -> unit -> 'a)
+    -> ('a, unit) finished_event
 
   (** Wait for the given event to occur, and extract its return value. *)
   val wait_for : Handler.t -> ('a, 'i) finished_event -> 'a
@@ -46,19 +47,61 @@ module type S = sig
   (** Runs the given step function forever. *)
   val forever : Handler.t -> (Handler.t -> unit -> unit) -> never_returns
 
-  val run_monadic_computation
-    :  Handler.t
-    -> ('a, O_data.t, I_data.t) Step_modules.Step_monad.t
-    -> 'a
-end
+  val run_monadic_computation : Handler.t -> ('a, O_data.t, I_data.t) Step_monad.t -> 'a
 
-module M (Step_modules : Step_modules.S) = struct
-  module type S = S with module Step_modules := Step_modules
+  module As_monad : sig
+    type 'a t = Handler.t -> 'a
+
+    include Monad.S with type 'a t := 'a t
+
+    val cycle : ?num_cycles:int -> unit -> unit t
+  end
+
+  module Expert : sig
+    val create_component
+      :  ?created_at:Stdlib.Lexing.position
+      -> period:int
+      -> update_children_after_finish:bool
+      -> (Handler.t -> 'a)
+      -> (O_data.t, unit) Component.t
+         * ('a, unit) Step_effect.Component_finished.t Step_effect.Event.t
+
+    (** An API to execute a step testbench step-by-step. Every call to [Evaluator.step]
+        will execute the step testbench, and the children it spawns, up to the
+        synchronization point where they call [Step.cycle h]. *)
+    module Evaluator : sig
+      module Result : sig
+        type 'a t =
+          | Finished of 'a
+          | Running
+      end
+
+      type 'a t
+
+      val create
+        :  period:int
+        -> update_children_after_finish:bool
+        -> (Handler.t -> 'a)
+        -> 'a t
+
+      (** Executes the simulation up to synchronization point.
+
+          Note that calling [step] on a finished testbench is NOT a no-op when
+          [update_children_after_finished] is set to true. Doing this will result in the
+          spawned children tasks being run even when the testbench finished. *)
+      val step : ?show_steps:bool -> 'a t -> 'a Result.t
+
+      (** Returns true if the testbench has already completed. When this returns true,
+          [step] is guranteed to return [Finished _]. Note that the converse is not true
+          -- even if the evaluator hasn't finished, the next call to [step] could cause is
+          to transition to a Finished state. *)
+      val is_finished : _ t -> bool
+    end
+  end
 end
 
 module type Imperative = sig
   module type S = S
 
-  module M = M
-  module Make (Step_modules : Step_modules.S) : M(Step_modules).S
+  include S
 end

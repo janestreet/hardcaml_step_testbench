@@ -1,5 +1,7 @@
 open! Import
-module Event_simulator = Hardcaml_step_testbench.Functional.Event_driven_sim.Simulator
+
+module Event_simulator =
+  Hardcaml_step_testbench.Monadic.Functional.Event_driven_sim.Simulator
 
 module%test Basic_test = struct
   module I = struct
@@ -19,7 +21,7 @@ module%test Basic_test = struct
     { O.q = Signal.reg_fb spec ~enable ~width:8 ~f:(fun d -> Signal.( +:. ) d 1) }
   ;;
 
-  module Step = Hardcaml_step_testbench.Functional.Event_driven_sim.Make (I) (O)
+  module Step = Hardcaml_step_testbench.Monadic.Functional.Event_driven_sim.Make (I) (O)
 
   module Evsim =
     Hardcaml_event_driven_sim.With_interface
@@ -191,8 +193,8 @@ struct
   end
 
   include Fifo
-  module Step = Hardcaml_step_testbench.Functional.Event_driven_sim.Make (I) (O)
-  module Logic = Hardcaml_step_testbench.Functional.Event_driven_sim.Logic
+  module Step = Hardcaml_step_testbench.Monadic.Functional.Event_driven_sim.Make (I) (O)
+  module Logic = Hardcaml_step_testbench.Monadic.Functional.Event_driven_sim.Logic
   module Evsim = Hardcaml_event_driven_sim.With_interface (Logic) (I) (O)
   module Vcd = Hardcaml_event_driven_sim.Vcd.Make (Logic)
   open Step.Let_syntax
@@ -316,11 +318,9 @@ end
 module%test Multiple_spawned_things = struct
   let test_multi_spawns () =
     let module Test = Send_and_receive_testbench in
-    let module Send_and_receive_testbench =
-      Test.Make (Hardcaml_step_testbench.Functional.Event_driven_sim.Step_modules)
-    in
+    let module Send_and_receive_testbench = Test.Monadic in
     let module Evstep =
-      Hardcaml_step_testbench.Functional.Event_driven_sim.Make (Test.I) (Test.O)
+      Hardcaml_step_testbench.Monadic.Functional.Event_driven_sim.Make (Test.I) (Test.O)
     in
     let module Evsim =
       Hardcaml_event_driven_sim.With_interface
@@ -398,8 +398,8 @@ module%test Test_different_ways_outputs_are_affected = struct
     }
   ;;
 
-  module Testbench (Step_modules : Hardcaml_step_testbench.Step_modules.S) = struct
-    module Step = Hardcaml_step_testbench.Functional.Make (Step_modules) (I) (O)
+  module Testbench = struct
+    module Step = Hardcaml_step_testbench.Monadic.Functional.Make (I) (O)
 
     let testbench (o : Step.O_data.t) =
       let open Step.Let_syntax in
@@ -417,10 +417,8 @@ module%test Test_different_ways_outputs_are_affected = struct
   end
 
   let test_evsim () =
-    let module Testbench =
-      Testbench (Hardcaml_step_testbench.Functional.Event_driven_sim.Step_modules)
-    in
-    let module Evstep = Hardcaml_step_testbench.Functional.Event_driven_sim.Make (I) (O)
+    let module Evstep =
+      Hardcaml_step_testbench.Monadic.Functional.Event_driven_sim.Make (I) (O)
     in
     let module Evsim =
       Hardcaml_event_driven_sim.With_interface
@@ -451,10 +449,7 @@ module%test Test_different_ways_outputs_are_affected = struct
   ;;
 
   let test_cyclesim () =
-    let module Testbench =
-      Testbench (Hardcaml_step_testbench.Functional.Cyclesim.Step_modules)
-    in
-    let module Step = Hardcaml_step_testbench.Functional.Cyclesim.Make (I) (O) in
+    let module Step = Hardcaml_step_testbench.Monadic.Functional.Cyclesim.Make (I) (O) in
     let module Sim = Cyclesim.With_interface (I) (O) in
     let simulator = Sim.create create_fn in
     Step.run_until_finished () ~simulator ~testbench:Testbench.testbench
@@ -527,7 +522,7 @@ module%test Test_different_ways_outputs_are_affected = struct
     ;;
   end
 
-  (* Run both backends.  This will fail if they dont generate the same output values. *)
+  (* Run both backends. This will fail if they dont generate the same output values. *)
   module%test Cyclesim = Compare (struct
       let test = test_cyclesim
     end)

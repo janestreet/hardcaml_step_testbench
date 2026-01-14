@@ -1,6 +1,6 @@
 (** Type to store the IO ports used when spawning an imperative task. *)
 
-open! Core
+open Hardcaml
 
 type ('i, 'o) t =
   { inputs : 'i

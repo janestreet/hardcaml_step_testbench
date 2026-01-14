@@ -6,13 +6,16 @@
 open Core
 open Hardcaml
 open Digital_components
-open Hardcaml_step_testbench_kernel
+
+include struct
+  open Hardcaml_step_testbench_kernel
+  module Component = Component
+  module Step_monad = Step_monad
+end
 
 module type S = sig
   module Io_ports_for_imperative = Hardcaml_step_testbench_kernel.Io_ports_for_imperative
-  module Before_and_after_edge = Hardcaml_step_testbench_kernel.Before_and_after_edge
-  module Step_modules : Step_modules.S
-  module Step_monad := Step_modules.Step_monad
+  module Before_and_after_edge = Before_and_after_edge
   module I : Hardcaml.Interface.S
   module O : Hardcaml.Interface.S
   module I_data : Data.S with type t = Bits.t I.t
@@ -46,7 +49,7 @@ module type S = sig
 
   (** [delay inputs ~num_cycles] applies [inputs] for [num_cycles] clock cycles and then
       returns unit. [delay] raises if [num_cycles < 0]. *)
-  val delay : I_data.t -> num_cycles:int -> unit t
+  val delay : ?num_cycles:int -> I_data.t -> unit t
 
   type ('a, 'b) finished_event =
     ('a, 'b) Step_monad.Component_finished.t Step_monad.Event.t
@@ -57,6 +60,7 @@ module type S = sig
          (** When [update_children_after_finish] is set to true. children tasks that have
              finished will still be updated. This will notably trigger an update on nested
              spawns. *)
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> (O_data.t -> 'a t)
     -> ('a, I_data.t) finished_event t
 
@@ -71,6 +75,7 @@ module type S = sig
       See documentation of [spawn] for an explaination of [update_children_after_finish]. *)
   val spawn_io
     :  ?update_children_after_finish:bool
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> inputs:(parent:'i -> child:I_data.t -> 'i)
     -> outputs:('o -> Bits.t O.t)
     -> (O_data.t -> 'a t)
@@ -87,6 +92,7 @@ module type S = sig
       from a task that's using the imperative step testbench. *)
   val spawn_from_imperative
     :  ?update_children_after_finish:bool
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> (Bits.t ref I.t, Bits.t ref O.t) Io_ports_for_imperative.t
     -> (O_data.t -> 'a t)
     -> (('a, I_data.t) finished_event, unit Before_and_after_edge.t, unit) Step_monad.t
@@ -98,6 +104,7 @@ module type S = sig
       with nicer types. *)
   val exec_never_returns_from_imperative
     :  ?update_children_after_finish:bool
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> (Bits.t ref I.t, Bits.t ref O.t) Io_ports_for_imperative.t
     -> (O_data.t -> never_returns t)
     -> (never_returns, unit Before_and_after_edge.t, unit) Step_monad.t
@@ -131,6 +138,10 @@ module type S = sig
 
   val never : never_returns t
 
+  val run_effectful_computation
+    :  ((O_data.t, I_data.t) Step_effect.Handler.t -> 'a)
+    -> 'a t
+
   module List : sig
     (** Construct a list of step monad results. The binds occurs from [0, 1, ...] which is
         the same as [Deferred.List.init] but opposite to [Base.List.init]. *)
@@ -151,16 +162,13 @@ module type S = sig
   end
 end
 
-module M (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) = struct
-  module type S =
-    S with module Step_modules := Step_modules and module I = I and module O = O
+module M (I : Interface.S) (O : Interface.S) = struct
+  module type S = S with module I = I and module O = O
 end
 
 module type Functional = sig
   module type S = S
 
   module M = M
-
-  module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) :
-    M(Step_modules)(I)(O).S
+  module Make (I : Interface.S) (O : Interface.S) : M(I)(O).S
 end

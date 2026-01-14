@@ -2,11 +2,9 @@ open! Core
 open Hardcaml
 open! Digital_components
 module M = Functional_cyclesim_intf.M
-module Step_modules = Functional_cyclesim_intf.Step_modules
 
 module Make (I : Interface.S) (O : Interface.S) = struct
-  module Step_effect = Step_modules.Step_effect
-  include Functional.Make (Step_modules) (I) (O)
+  include Functional.Make (I) (O)
 
   module Simulator = struct
     type t = (Cyclesim.With_interface(I)(O).t[@sexp.opaque]) [@@deriving sexp_of]
@@ -41,10 +39,12 @@ module Make (I : Interface.S) (O : Interface.S) = struct
       match Step_effect.Event.value result_event with
       | None ->
         if timedout ()
-        then Step_effect.Component.Next_input.Finished
+        then Component.Next_input.Finished
         else Input (simulator_output simulator)
       | Some _ -> Finished
   ;;
+
+  include Component.Run_component_until_finished (Monad.Ident)
 
   let run_with_timeout
     ?(input_default = input_hold)
@@ -62,8 +62,10 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         ~start:(fun output handler -> start handler testbench output)
         ~input:(module O_data)
         ~output:(module I_data)
+        ()
     in
-    Step_effect.Component.run_until_finished
+    Cyclesim.cycle_until_clocks_aligned simulator;
+    run_component_until_finished
       component
       ?show_steps
       ~first_input:(simulator_output simulator)

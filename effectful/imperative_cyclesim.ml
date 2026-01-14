@@ -1,9 +1,8 @@
 open! Core
 open Hardcaml
 open! Digital_components
-module Step_modules = Imperative_cyclesim_intf.Step_modules
-include Imperative.Make (Step_modules)
-module Step_effect = Step_modules.Step_effect
+include Imperative
+include Component.Run_component_until_finished (Monad.Ident)
 
 let next_input timeout simulator result_event =
   let timedout =
@@ -18,33 +17,24 @@ let next_input timeout simulator result_event =
     Cyclesim.cycle simulator;
     match Step_effect.Event.value result_event with
     | None ->
-      if timedout ()
-      then Step_effect.Component.Next_input.Finished
-      else Input O_data.undefined
+      if timedout () then Component.Next_input.Finished else Input O_data.undefined
     | Some _ -> Finished)
-;;
-
-let create_component ~update_children_after_finish testbench =
-  Step_effect.create_component
-    ~update_children_after_finish
-    ~created_at:[%here]
-    ~start:(fun testbench_arg handler -> start handler testbench testbench_arg)
-    ~input:(module O_data)
-    ~output:(module I_data)
 ;;
 
 let run_with_timeout
   ?(update_children_after_finish = false)
+  ?show_steps
   ?timeout
   ()
   ~simulator
   ~testbench
   =
   let component, result_event =
-    create_component ~update_children_after_finish (fun handler (_ : O_data.t) ->
-      testbench handler)
+    Expert.create_component ~period:1 ~update_children_after_finish testbench
   in
-  Step_effect.Component.run_until_finished
+  Cyclesim.cycle_until_clocks_aligned simulator;
+  run_component_until_finished
+    ?show_steps
     component
     ~first_input:O_data.undefined
     ~next_input:(Staged.unstage (next_input timeout simulator result_event));
@@ -53,41 +43,35 @@ let run_with_timeout
   | Some x -> Some x.result
 ;;
 
-let run_with_timeout' ?update_children_after_finish ?timeout () ~simulator ~testbench =
+let run_with_timeout'
+  ?update_children_after_finish
+  ?show_steps
+  ?timeout
+  ()
+  ~simulator
+  ~testbench
+  =
   run_with_timeout
     ?update_children_after_finish
+    ?show_steps
     ?timeout
     ()
     ~simulator
     ~testbench:(fun handler -> testbench handler simulator)
 ;;
 
-let run_until_finished ?update_children_after_finish () ~simulator ~testbench =
-  match run_with_timeout ?update_children_after_finish () ~simulator ~testbench with
+let run_until_finished ?update_children_after_finish ?show_steps () ~simulator ~testbench =
+  match
+    run_with_timeout ?update_children_after_finish ?show_steps () ~simulator ~testbench
+  with
   | Some result -> result
   | None -> raise_s [%message "Step testbench did not complete with a result."]
 ;;
 
-type wrapped_testbench =
-  | Wrapped_testbench :
-      { step_function : unit -> unit
-      ; result_event : (_, _) finished_event
-      }
-      -> wrapped_testbench
-
 let wrap ?(show_steps = false) ~when_to_evaluate_testbenches ~testbenches simulator =
-  let wrapped_testbenches =
+  let evaluators =
     Core.List.map testbenches ~f:(fun testbench ->
-      let component, result_event =
-        create_component
-          ~update_children_after_finish:false
-          (fun handler (_ : O_data.t) -> testbench handler)
-      in
-      let step_function =
-        Staged.unstage (Step_effect.Component.create_step_function ~show_steps component)
-      in
-      let step_function () = step_function O_data.undefined in
-      ref (Some (Wrapped_testbench { step_function; result_event })))
+      Expert.Evaluator.create ~period:1 ~update_children_after_finish:false testbench)
   in
   let (side, step) : Side.t * Cyclesim.Private.Step.t =
     match when_to_evaluate_testbenches with
@@ -99,16 +83,12 @@ let wrap ?(show_steps = false) ~when_to_evaluate_testbenches ~testbenches simula
     [ ( side
       , step
       , fun () ->
-          Core.List.iter wrapped_testbenches ~f:(fun wrapped_tb ->
-            match !wrapped_tb with
-            | None -> ()
-            | Some (Wrapped_testbench { step_function; result_event }) ->
-              step_function ();
-              (match Step_effect.Event.value result_event with
-               | Some _ ->
-                 (* The testbench has completed, so we wet this ref to None. *)
-                 wrapped_tb := None
-               | None -> ())) )
+          Core.List.iter evaluators ~f:(fun evaluator ->
+            if not (Expert.Evaluator.is_finished evaluator)
+            then
+              ignore
+                (Expert.Evaluator.step ~show_steps evaluator
+                 : _ Expert.Evaluator.Result.t)) )
     ]
 ;;
 

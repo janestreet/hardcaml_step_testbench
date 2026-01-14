@@ -1,9 +1,9 @@
 open! Core
 open Hardcaml
-module Step_modules = Hardcaml_step_testbench_kernel.Step_modules.Cyclesim
 
-module type S = sig
-  include Imperative.S
+module type Imperative_cyclesim = sig
+  module Step_monad = Digital_components.Step_monad
+  include module type of Imperative
 
   (** Run the testbench until the main task finishes.
 
@@ -11,6 +11,7 @@ module type S = sig
       and returns None. Otherwise it will continue until the testbech completes. *)
   val run_with_timeout
     :  ?update_children_after_finish:bool (** default is [false] *)
+    -> ?show_steps:bool (** default is [false] *)
     -> ?timeout:int (** default is [None] *)
     -> unit
     -> simulator:(_, _) Cyclesim.t
@@ -22,6 +23,7 @@ module type S = sig
       function. *)
   val run_with_timeout'
     :  ?update_children_after_finish:bool (** default is [false] *)
+    -> ?show_steps:bool (** default is [false] *)
     -> ?timeout:int (** default is [None] *)
     -> unit
     -> simulator:('i, 'o) Cyclesim.t
@@ -31,6 +33,7 @@ module type S = sig
   (** Run the testbench until completion. *)
   val run_until_finished
     :  ?update_children_after_finish:bool (** default is [false] *)
+    -> ?show_steps:bool (** default is [false] *)
     -> unit
     -> simulator:(_, _) Cyclesim.t
     -> testbench:(unit -> 'a t)
@@ -60,13 +63,4 @@ module type S = sig
     -> testbenches:(unit -> never_returns t) list
     -> ('i, 'o) Cyclesim.t
     -> ('i, 'o) Cyclesim.t
-end
-
-module type Imperative_cyclesim = sig
-  module Step_monad = Step_modules.Step_monad
-  module Step_modules = Step_modules
-
-  module type S = S with module Step_modules := Step_modules
-
-  include S
 end

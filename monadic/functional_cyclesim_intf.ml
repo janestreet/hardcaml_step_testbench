@@ -2,7 +2,6 @@
 
 open! Core
 open Hardcaml
-module Step_modules = Hardcaml_step_testbench_kernel.Step_modules.Cyclesim
 
 module type S = sig
   include Functional.S
@@ -42,17 +41,15 @@ end
 
 module M (I : Interface.S) (O : Interface.S) = struct
   module type S = sig
-    module Step_monad = Step_modules.Step_monad
-    module Step_modules = Step_modules
-    include S with module Step_modules := Step_modules and module I = I and module O = O
+    module Step_monad = Digital_components.Step_monad
+    include S with module I = I and module O = O
   end
 end
 
 module type Functional_cyclesim = sig
-  module Step_modules = Step_modules
   module M = M
 
-  module type S = S with module Step_modules := Step_modules
+  module type S = S
 
   module Make (I : Interface.S) (O : Interface.S) : M(I)(O).S
 end

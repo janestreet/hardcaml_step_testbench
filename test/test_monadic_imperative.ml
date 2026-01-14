@@ -1,7 +1,7 @@
 open! Core
 open Hardcaml
 open Hardcaml_waveterm
-module Before_and_after_edge = Hardcaml_step_testbench.Before_and_after_edge
+module Before_and_after_edge = Hardcaml_step_testbench.Monadic.Before_and_after_edge
 
 module I = struct
   type 'a t =
@@ -23,7 +23,7 @@ let create ({ I.clock; enable; step } : _ I.t) =
 ;;
 
 module Sim = Cyclesim.With_interface (I) (O)
-module Step = Hardcaml_step_testbench.Imperative.Cyclesim
+module Step = Hardcaml_step_testbench.Monadic.Imperative.Cyclesim
 open Step.Let_syntax
 
 (* A thread which controls the [step]
@@ -87,7 +87,9 @@ let%expect_test "" =
 
 module%test Spawn_functional_step = struct
   open Step.Let_syntax
-  module Functional_step = Hardcaml_step_testbench.Functional.Cyclesim.Make (I) (O)
+
+  module Functional_step =
+    Hardcaml_step_testbench.Monadic.Functional.Cyclesim.Make (I) (O)
 
   let testbench (sim : Sim.t) =
     let io_ports =
@@ -203,8 +205,10 @@ module%test Basic_test = struct
     { O.q = Signal.reg_fb spec ~enable ~width:8 ~f:(fun d -> Signal.( +:. ) d 1) }
   ;;
 
-  module Event_simulator = Hardcaml_step_testbench.Imperative.Event_driven_sim.Simulator
-  module Step = Hardcaml_step_testbench.Imperative.Event_driven_sim
+  module Event_simulator =
+    Hardcaml_step_testbench.Monadic.Imperative.Event_driven_sim.Simulator
+
+  module Step = Hardcaml_step_testbench.Monadic.Imperative.Event_driven_sim
 
   module Evsim =
     Hardcaml_event_driven_sim.With_interface

@@ -6,7 +6,7 @@ module type S = Functional_intf.S
 
 module M = Functional_intf.M
 
-module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) = struct
+module Make (I : Interface.S) (O : Interface.S) = struct
   module I = I
   module O = O
   module Io_ports_for_imperative = Hardcaml_step_testbench_kernel.Io_ports_for_imperative
@@ -49,21 +49,21 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
   end
 
   module Handler = struct
-    type t = (O_data.t, I_data.t) Step_modules.Step_effect.Handler.t
+    type t = (O_data.t, I_data.t) Step_effect.Handler.t
   end
 
   let rec cycle (handler : Handler.t) ?(num_cycles = 1) (i : I_data.t) =
     if num_cycles < 1
     then raise_s [%message "cycle must take 1 or more num_cycles" (num_cycles : int)]
     else if num_cycles = 1
-    then Step_modules.Step_effect.next_step [%here] i handler
+    then Step_effect.next_step [%here] i handler
     else (
-      Step_modules.Step_effect.delay i ~num_steps:1 handler;
+      Step_effect.delay i ~num_steps:1 handler;
       cycle handler ~num_cycles:(num_cycles - 1) i)
   ;;
 
-  let delay (handler : Handler.t) i ~num_cycles =
-    Step_modules.Step_effect.delay i ~num_steps:num_cycles handler
+  let delay ?(num_cycles = 1) (handler : Handler.t) i =
+    Step_effect.delay i ~num_steps:num_cycles handler
   ;;
 
   let merge_inputs ~parent ~child =
@@ -71,24 +71,24 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
   ;;
 
   type ('a, 'b) finished_event =
-    ('a, 'b) Step_modules.Step_effect.Component_finished.t
-      Step_modules.Step_effect.Event.t
+    ('a, 'b) Step_effect.Component_finished.t Step_effect.Event.t
 
   let start (handler : Handler.t) testbench output =
     let result = testbench handler output in
-    { Step_modules.Step_effect.Component_finished.output = I_data.undefined; result }
+    { Step_effect.Component_finished.output = I_data.undefined; result }
   ;;
 
   let spawn_io_different_outputs
     ?update_children_after_finish
+    ?period
     ~inputs
     ~outputs
     task
-    (parent_handler :
-      ('o_p Before_and_after_edge.t, 'i_p) Step_modules.Step_effect.Handler.t)
+    (parent_handler : ('o_p Before_and_after_edge.t, 'i_p) Step_effect.Handler.t)
     =
-    Step_modules.Step_effect.spawn
+    Step_effect.spawn
       ?update_children_after_finish
+      ?period
       [%here]
       ~start:(fun output handler -> start handler task output)
       ~input:(module O_data)
@@ -99,23 +99,38 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
       parent_handler
   ;;
 
-  let spawn_io ?update_children_after_finish ~inputs ~outputs parent_handler task =
+  let spawn_io ?update_children_after_finish ?period ~inputs ~outputs parent_handler task =
     let outputs = Before_and_after_edge.const outputs in
     spawn_io_different_outputs
       ?update_children_after_finish
+      ?period
       ~inputs
       ~outputs
       task
       parent_handler
   ;;
 
-  let spawn ?update_children_after_finish (handler : Handler.t) task =
+  let spawn_io' ?update_children_after_finish ?period ~inputs ~outputs parent_handler task
+    =
+    ignore
+      (spawn_io ?update_children_after_finish ?period ~inputs ~outputs parent_handler task
+       : _ Step_effect.Event.t)
+  ;;
+
+  let spawn ?update_children_after_finish ?period (handler : Handler.t) task =
     spawn_io
       ?update_children_after_finish
+      ?period
       handler
       task
       ~outputs:Fn.id
       ~inputs:merge_inputs
+  ;;
+
+  let spawn' ?update_children_after_finish ?period (handler : Handler.t) task =
+    ignore
+      (spawn ?update_children_after_finish ?period (handler : Handler.t) task
+       : _ Step_effect.Event.t)
   ;;
 
   let create_io_ports_for_imperative simulator ~inputs ~outputs =
@@ -131,9 +146,9 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
 
   let spawn_from_imperative
     ?update_children_after_finish
+    ?period
     (io_ports : _ Io_ports_for_imperative.t)
-    (parent_handler :
-      (unit Before_and_after_edge.t, unit) Step_modules.Step_effect.Handler.t)
+    (parent_handler : (unit Before_and_after_edge.t, unit) Step_effect.Handler.t)
     task
     =
     let { Io_ports_for_imperative.inputs = inputs_ref; outputs = outputs_ref } =
@@ -148,6 +163,7 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
     in
     spawn_io_different_outputs
       ?update_children_after_finish
+      ?period
       ~inputs
       ~outputs
       task
@@ -155,23 +171,27 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
   ;;
 
   let wait_for (handler : Handler.t) (event : _ finished_event) =
-    let x = Step_modules.Step_effect.wait_for event ~output:I_data.undefined handler in
+    let x = Step_effect.wait_for event ~output:I_data.undefined handler in
     x.result
   ;;
 
   let exec_never_returns_from_imperative
     ?update_children_after_finish
+    ?period
     io_ports
     parent_handler
     (task : Handler.t -> O_data.t -> never_returns)
     : never_returns
     =
     let ev_never_returns =
-      spawn_from_imperative ?update_children_after_finish io_ports parent_handler task
+      spawn_from_imperative
+        ?update_children_after_finish
+        ?period
+        io_ports
+        parent_handler
+        task
     in
-    let finished =
-      Step_modules.Step_effect.wait_for ev_never_returns ~output:() parent_handler
-    in
+    let finished = Step_effect.wait_for ev_never_returns ~output:() parent_handler in
     finished.result
   ;;
 
@@ -185,7 +205,7 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
     =
     if timeout_in_cycles < 0
     then raise_s [%message "timeout_in_cycles < 0" (timeout_in_cycles : int)];
-    match Step_modules.Step_effect.Event.value event with
+    match Step_effect.Event.value event with
     | Some x -> Some x.result
     | None ->
       if timeout_in_cycles = 0
@@ -213,9 +233,21 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
   let run_monadic_computation
     (type a)
     h
-    (computation : (a, O_data.t, I_data.t) Step_modules.Step_monad.t)
+    (computation : (a, O_data.t, I_data.t) Step_monad.t)
     : a
     =
-    Step_modules.Step_effect.run_monadic_computation h computation
+    Step_effect.run_monadic_computation h computation
   ;;
+
+  module As_monad = struct
+    type 'a t = Handler.t -> 'a
+
+    include Monad.Make (struct
+        type nonrec 'a t = 'a t
+
+        let return x _ = x
+        let bind (a : _ t) ~f : _ t = fun h -> f (a h) h
+        let map = `Define_using_bind
+      end)
+  end
 end

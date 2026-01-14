@@ -28,7 +28,7 @@ module%test [@tags "runtime5-only"] _ = struct
 
   (* A thread which controls the [step]
 
-   returns a string to show we can.
+     returns a string to show we can.
   *)
   let rec incr_step i step (inputs : _ I.t) handler () =
     inputs.step := Bits.of_int_trunc ~width:8 step;

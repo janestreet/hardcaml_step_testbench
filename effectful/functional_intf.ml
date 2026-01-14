@@ -11,8 +11,6 @@ open Hardcaml_step_testbench_kernel
 module type S = sig
   module Io_ports_for_imperative = Hardcaml_step_testbench_kernel.Io_ports_for_imperative
   module Before_and_after_edge = Hardcaml_step_testbench_kernel.Before_and_after_edge
-  module Step_modules : Step_modules.S
-  module Step_effect := Step_modules.Step_effect
   module I : Hardcaml.Interface.S
   module O : Hardcaml.Interface.S
   module I_data : Data.S with type t = Bits.t I.t
@@ -43,37 +41,49 @@ module type S = sig
 
   (** [delay inputs ~num_cycles] applies [inputs] for [num_cycles] clock cycles and then
       returns unit. [delay] raises if [num_cycles < 0]. *)
-  val delay : Handler.t -> I_data.t -> num_cycles:int -> unit
+  val delay : ?num_cycles:int -> Handler.t -> I_data.t -> unit
 
   type ('a, 'b) finished_event =
     ('a, 'b) Step_effect.Component_finished.t Step_effect.Event.t
 
-  (** Launch a new task within the current simulation step. *)
-  val spawn
-    :  ?update_children_after_finish:bool
-         (** When [update_children_after_finish] is set to true. children tasks that have
-             finished will still be updated. This will notably trigger an update on nested
-             spawns. *)
+  type ('a, 'ret) spawn :=
+    ?update_children_after_finish:bool
+      (** When [update_children_after_finish] is set to true. children tasks that have
+          finished will still be updated. This will notably trigger an update on nested
+          spawns. *)
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> Handler.t
     -> (Handler.t -> O_data.t -> 'a)
-    -> ('a, I_data.t) finished_event
+    -> 'ret
+
+  (** Launch a new task within the current simulation step. *)
+  val spawn : ('a, ('a, I_data.t) finished_event) spawn
+
+  (** Similar to [spawn], but ignored the finished_event return value *)
+  val spawn' : ('a, unit) spawn
 
   (** [merge_inputs ~parent ~child] merges the child inputs into the parent. If a child
       input is [empty], the parent's value is used. *)
   val merge_inputs : parent:I_data.t -> child:I_data.t -> I_data.t
+
+  type ('a, 'i, 'o, 'ret) spawn_io :=
+    ?update_children_after_finish:bool
+    -> ?period:int (** defaults to the period of the parent at run time *)
+    -> inputs:(parent:'i -> child:I_data.t -> 'i)
+    -> outputs:('o -> Bits.t O.t)
+    -> ('o Before_and_after_edge.t, 'i) Step_effect.Handler.t
+    -> (Handler.t -> O_data.t -> 'a)
+    -> 'ret
 
   (** Launch a task from a testbench with a [cycle] function taking ['i] to ['o]. The
       [inputs] and [outputs] arguments should construct [I_data.t] and [O_data.t] from the
       types of the child testbench.
 
       See documentation of [spawn] for an explaination of [update_children_after_finish]. *)
-  val spawn_io
-    :  ?update_children_after_finish:bool
-    -> inputs:(parent:'i -> child:I_data.t -> 'i)
-    -> outputs:('o -> Bits.t O.t)
-    -> ('o Before_and_after_edge.t, 'i) Step_effect.Handler.t
-    -> (Handler.t -> O_data.t -> 'a)
-    -> ('a, I_data.t) finished_event
+  val spawn_io : ('a, 'i, 'o, ('a, I_data.t) finished_event) spawn_io
+
+  (** Similar to [spawn_io], but ignored the finished_event return value *)
+  val spawn_io' : ('a, 'i, 'o, unit) spawn_io
 
   (** Create io ports to be used with [spawn_from_imperative] from a simulator. *)
   val create_io_ports_for_imperative
@@ -86,6 +96,7 @@ module type S = sig
       from a task that's using the imperative step testbench. *)
   val spawn_from_imperative
     :  ?update_children_after_finish:bool
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> (Bits.t ref I.t, Bits.t ref O.t) Io_ports_for_imperative.t
     -> (unit Before_and_after_edge.t, unit) Step_effect.Handler.t
     -> (Handler.t -> O_data.t -> 'a)
@@ -98,6 +109,7 @@ module type S = sig
       with nicer types. *)
   val exec_never_returns_from_imperative
     :  ?update_children_after_finish:bool
+    -> ?period:int (** defaults to the period of the parent at run time *)
     -> (Bits.t ref I.t, Bits.t ref O.t) Io_ports_for_imperative.t
     -> (unit Before_and_after_edge.t, unit) Step_effect.Handler.t
     -> (Handler.t -> O_data.t -> never_returns)
@@ -132,23 +144,22 @@ module type S = sig
   val forever_unit : Handler.t -> (Handler.t -> unit -> unit) -> unit
 
   val never : Handler.t -> never_returns
+  val run_monadic_computation : Handler.t -> ('a, O_data.t, I_data.t) Step_monad.t -> 'a
 
-  val run_monadic_computation
-    :  Handler.t
-    -> ('a, O_data.t, I_data.t) Step_modules.Step_monad.t
-    -> 'a
+  module As_monad : sig
+    type 'a t = Handler.t -> 'a
+
+    include Monad.S with type 'a t := 'a t
+  end
 end
 
-module M (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) = struct
-  module type S =
-    S with module Step_modules := Step_modules and module I = I and module O = O
+module M (I : Interface.S) (O : Interface.S) = struct
+  module type S = S with module I = I and module O = O
 end
 
 module type Functional = sig
   module type S = S
 
   module M = M
-
-  module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) :
-    M(Step_modules)(I)(O).S
+  module Make (I : Interface.S) (O : Interface.S) : M(I)(O).S
 end

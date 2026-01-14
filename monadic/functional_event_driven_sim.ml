@@ -1,18 +1,16 @@
 open! Core
 open Hardcaml
+open Digital_components
 module M = Functional_event_driven_sim_intf.M
 include Hardcaml_event_driven_sim.Two_state_simulator
-module Step_modules = Functional_event_driven_sim_intf.Step_modules
 
-module type S =
-  Functional_event_driven_sim_intf.S with module Step_modules := Step_modules
+module type S = Functional_event_driven_sim_intf.S
 
 module Make (I : Interface.S) (O : Interface.S) = struct
-  open Step_modules
-  module Deferred = Event_driven_sim.Mini_async.Deferred
-  include Functional.Make (Step_modules) (I) (O)
-  module Step_modules = Step_modules
   module Step_monad = Step_monad
+  module Deferred = Event_driven_sim.Mini_async.Deferred
+  include Functional.Make (I) (O)
+  include Component.Run_component_until_finished (Deferred)
 
   let simulator_output outputs = O.map outputs ~f:Simulator.Signal.read
 
@@ -88,9 +86,9 @@ module Make (I : Interface.S) (O : Interface.S) = struct
       match Step_monad.Event.value result_event with
       | None ->
         if timedout ()
-        then Deferred.return Step_monad.Component.Next_input.Finished
-        else Deferred.return (Step_monad.Component.Next_input.Input outputs)
-      | Some _ -> Deferred.return Step_monad.Component.Next_input.Finished
+        then Deferred.return Component.Next_input.Finished
+        else Deferred.return (Component.Next_input.Input outputs)
+      | Some _ -> Deferred.return Component.Next_input.Finished
   ;;
 
   type ('a, 'r) run =
@@ -123,11 +121,12 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         ~start:(start testbench)
         ~input:(module O_data)
         ~output:(module I_data)
+        ()
     in
     fun () ->
       let open Simulator.Async.Deferred.Let_syntax in
       let%map () =
-        Step_monad.Component.run_until_finished
+        run_component_until_finished
           component
           ?show_steps
           ~first_input:

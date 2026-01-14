@@ -1,4 +1,4 @@
-open! Core
+open Hardcaml
 
 type ('i, 'o) t =
   { inputs : 'i

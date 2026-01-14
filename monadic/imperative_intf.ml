@@ -3,14 +3,11 @@ open! Hardcaml
 open Digital_components
 open Hardcaml_step_testbench_kernel
 
-module type S = sig
+module type Imperative = sig
   module I_data : Data.S with type t = unit
 
   module O_data :
     Data.S with type t = unit Hardcaml_step_testbench_kernel.Before_and_after_edge.t
-
-  module Step_modules : Step_modules.S
-  module Step_monad := Step_modules.Step_monad
 
   type 'a t = ('a, O_data.t, I_data.t) Step_monad.t
 
@@ -30,7 +27,10 @@ module type S = sig
     ('a, 'i) Step_monad.Component_finished.t Step_monad.Event.t
 
   (** Launch a new task within the current simulation step. *)
-  val spawn : (unit -> 'a t) -> ('a, unit) finished_event t
+  val spawn
+    :  ?period:int (** defaults to the period of the parent at run time *)
+    -> (unit -> 'a t)
+    -> ('a, unit) finished_event t
 
   (** Wait for the given event to occur, and extract its return value. *)
   val wait_for : ('a, 'i) finished_event -> 'a t
@@ -44,6 +44,10 @@ module type S = sig
 
   (** Runs the given step function forever. *)
   val forever : (unit -> unit t) -> never_returns t
+
+  val run_effectful_computation
+    :  ((O_data.t, I_data.t) Step_effect.Handler.t -> 'a)
+    -> 'a t
 
   module List : sig
     (** Construct a list of step monad results. The binds occurs from [0, 1, ...] which is
@@ -63,15 +67,4 @@ module type S = sig
     val iteri : 'a array -> f:(int -> 'a -> unit t) -> unit t
     val map : 'a array -> f:('a -> 'b t) -> 'b array t
   end
-end
-
-module M (Step_modules : Step_modules.S) = struct
-  module type S = S with module Step_modules := Step_modules
-end
-
-module type Imperative = sig
-  module type S = S
-
-  module M = M
-  module Make (Step_modules : Step_modules.S) : M(Step_modules).S
 end

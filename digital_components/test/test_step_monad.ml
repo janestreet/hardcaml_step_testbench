@@ -3,15 +3,14 @@ open Expect_test_helpers_core
 module Data = Digital_components.Data
 
 include struct
-  module Component = Digital_components.Component.Make (Monad.Ident)
-  module Step_core = Digital_components.Step_core.Make (Monad.Ident) (Component)
-
-  module Step_monad =
-    Digital_components.Step_monad.Make (Monad.Ident) (Component) (Step_core)
+  open Digital_components
+  module Component = Component
+  module Step_monad = Step_monad
 end
 
 open Step_monad
 open! Step_monad.Let_syntax
+include Component.Run_component_until_finished (Monad.Ident)
 
 let run_with_inputs (t : _ Component.t) inputs =
   let sexp_of_input = Component.sexp_of_input t in
@@ -32,8 +31,8 @@ let create_component ?(update_children_after_finish = false) created_at start =
 ;;
 
 let test start =
-  let component, component_finished = create_component [%here] start in
-  Component.run_until_finished
+  let component, component_finished = create_component [%here] start () in
+  run_component_until_finished
     component
     ~show_steps:true
     ~first_input:()
@@ -424,6 +423,7 @@ let%expect_test "output counter" =
           loop (i + 1)
         in
         loop 0)
+      ()
   in
   run_with_inputs component (List.init 5 ~f:(fun _ -> ()));
   [%expect
@@ -449,6 +449,7 @@ let%expect_test "add1" =
            loop i
          in
          loop)
+      ()
   in
   run_with_inputs component (List.init 5 ~f:Fn.id);
   [%expect
@@ -528,7 +529,10 @@ let%expect_test "parent runs before child" =
       (children ((
         lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
         ((state (
-           Running (Monad_bind <fun> (Monad_bind <fun> (Monad_bind <fun> Empty)))))
+           Running
+           (num_steps_to_stall 0)
+           (continuation (
+             Monad_bind <fun> (Monad_bind <fun> (Monad_bind <fun> Empty))))))
          (children ())
          (output   ())))))
       (output ())))
@@ -559,8 +563,9 @@ let%expect_test "finished child doesn't contribute to output" =
         let%bind _ = Step_monad.wait_for child_finished ~output:"waiting" in
         let%bind () = Step_monad.delay ~num_steps:3 "delay" in
         return { Component_finished.output = "after"; result = () })
+      ()
   in
-  Component.run_until_finished
+  run_component_until_finished
     component
     ~show_steps:true
     ~first_input:()
@@ -627,6 +632,7 @@ let%expect_test "grand-child does not run when child terminates" =
           in
           let%bind () = loop 0 in
           return { Component_finished.output = (); result = () })
+        ()
     in
     ignore
       (Component.run_with_inputs
