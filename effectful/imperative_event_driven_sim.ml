@@ -1,10 +1,10 @@
 open! Core
 open Hardcaml
+open Digital_components
 include Hardcaml_event_driven_sim.Two_state_simulator
-module Step_modules = Imperative_event_driven_sim_intf.Step_modules
-module Step_effect = Step_modules.Step_effect
 module Deferred = Event_driven_sim.Mini_async.Deferred
-include Imperative.Make (Step_modules)
+include Imperative
+include Component.Run_component_until_finished (Deferred)
 
 module Simulation_step = struct
   type t = Bits.t Simulator.Signal.t -> unit Deferred.t
@@ -54,9 +54,9 @@ let next_input ~simulation_step ~timeout ~clock ~result_event =
       (match Step_effect.Event.value result_event with
        | None ->
          if timedout ()
-         then Step_effect.Component.Next_input.Finished
-         else Step_effect.Component.Next_input.Input O_data.undefined
-       | Some _ -> Step_effect.Component.Next_input.Finished)
+         then Component.Next_input.Finished
+         else Component.Next_input.Input O_data.undefined
+       | Some _ -> Component.Next_input.Finished)
 ;;
 
 type ('a, 'r) run =
@@ -75,18 +75,12 @@ let deferred
   ~testbench
   =
   let component, result_event =
-    Step_effect.create_component
-      ~update_children_after_finish:false
-      ~created_at:[%here]
-      ~start:(fun _ handler -> start handler (fun handler _ -> testbench handler) ())
-      ~input:(module O_data)
-      ~output:(module I_data)
-      ()
+    Expert.create_component ~period:1 ~update_children_after_finish:false testbench
   in
   fun () ->
     let open Simulator.Async.Deferred.Let_syntax in
     let%map () =
-      Step_effect.Component.run_until_finished
+      run_component_until_finished
         component
         ~first_input:O_data.undefined
         ~next_input:(next_input ~simulation_step ~timeout ~clock ~result_event)

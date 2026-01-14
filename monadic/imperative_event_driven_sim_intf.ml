@@ -1,9 +1,12 @@
 open! Core
-open Hardcaml_event_driven_sim.Two_state_simulator
-module Step_modules = Hardcaml_step_testbench_kernel.Step_modules.Event_driven_sim
 
-module type S = sig
-  include Imperative.S
+module type Imperative_event_driven_sim = sig
+  module Step_monad = Digital_components.Step_monad
+  include module type of Imperative
+
+  include
+    Hardcaml_event_driven_sim.S
+    with type Logic.t = Hardcaml_event_driven_sim.Two_state_logic.t
 
   module Simulation_step : sig
     type t = Hardcaml.Bits.t Simulator.Signal.t -> unit Simulator.Async.Deferred.t
@@ -33,17 +36,4 @@ module type S = sig
 
   (** Wrap an event sim in a process and wait forever after it completes. *)
   val process : (unit, Simulator.Process.t) run
-end
-
-module type Imperative_event_driven_sim = sig
-  module Step_monad = Step_modules.Step_monad
-  module Step_modules = Step_modules
-
-  include
-    Hardcaml_event_driven_sim.S
-    with type Logic.t = Hardcaml_event_driven_sim.Two_state_logic.t
-
-  module type S = S with module Step_modules := Step_modules
-
-  include S
 end

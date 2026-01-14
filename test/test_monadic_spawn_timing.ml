@@ -29,7 +29,7 @@ let create (i : _ I.t) =
 ;;
 
 module Sim = Cyclesim.With_interface (I) (O)
-module Step = Hardcaml_step_testbench.Functional.Cyclesim.Make (I) (O)
+module Step = Hardcaml_step_testbench.Monadic.Functional.Cyclesim.Make (I) (O)
 open Step.Let_syntax
 
 let setx2 _ =

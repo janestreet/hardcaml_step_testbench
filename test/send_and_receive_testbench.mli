@@ -27,9 +27,9 @@ val make_circuit : Signal.t I.t -> Signal.t O.t
 
 (** Testbench which is abstracted over the monads that build a step testbench and can be
     used from [Cyclesim] and [Event_driven_sim]. *)
-module Make (Step_modules : Hardcaml_step_testbench.Step_modules.S) : sig
-  module Tb_source : Hardcaml_step_testbench.Functional.M(Step_modules)(Source)(Source).S
-  module Tb : Hardcaml_step_testbench.Functional.M(Step_modules)(I)(O).S
+module Monadic : sig
+  module Tb_source : Hardcaml_step_testbench.Monadic.Functional.M(Source)(Source).S
+  module Tb : Hardcaml_step_testbench.Monadic.Functional.M(I)(O).S
 
   val send_data : first:bool -> num_words:int -> Tb_source.O_data.t -> unit Tb_source.t
   val recv_data : Bits.t list -> Tb.O_data.t -> Bits.t list Tb.t
@@ -38,11 +38,9 @@ module Make (Step_modules : Hardcaml_step_testbench.Step_modules.S) : sig
 end
 
 (** Similar to the above, but uses the effectful API instead *)
-module Make_effectful (Step_modules : Hardcaml_step_testbench.Step_modules.S) : sig
-  module Tb_source :
-    Hardcaml_step_testbench_effectful.Functional.M(Step_modules)(Source)(Source).S
-
-  module Tb : Hardcaml_step_testbench_effectful.Functional.M(Step_modules)(I)(O).S
+module Effectful : sig
+  module Tb_source : Hardcaml_step_testbench_effectful.Functional.M(Source)(Source).S
+  module Tb : Hardcaml_step_testbench_effectful.Functional.M(I)(O).S
 
   val send_data
     :  first:bool

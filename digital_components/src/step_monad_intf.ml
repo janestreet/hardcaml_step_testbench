@@ -8,11 +8,7 @@
 
 open! Base
 
-module type S = sig
-  module Input_monad : Monad.S
-  module Component : Component.M(Input_monad).S
-  module Step_core : Step_core.M(Input_monad)(Component).S
-
+module type Step_monad = sig
   type ('a, 'i, 'o) t = ('a, 'i, 'o) Step_core.Computation.Monadic.t [@@deriving sexp_of]
 
   include Monad.S3 with type ('a, 'b, 'c) t := ('a, 'b, 'c) t
@@ -38,7 +34,7 @@ module type S = sig
       future) transition from "undetermined" to "determined", with some value. One can
       [wait_for] an event in a computation. *)
   module Event : sig
-    type 'a t [@@deriving sexp_of]
+    type 'a t = 'a Event.t [@@deriving sexp_of]
 
     val value : 'a t -> 'a option
   end
@@ -80,28 +76,8 @@ module type S = sig
     -> output:'o Data.t
     -> unit
     -> ('i, 'o) Component.t * ('a, 'o) Component_finished.t Event.t
-end
 
-module M
-    (Input_monad : Monad.S)
-    (Component : Component.M(Input_monad).S)
-    (Step_core : Step_core.M(Input_monad)(Component).S) =
-struct
-  module type S =
-    S
-    with module Input_monad = Input_monad
-     and module Component = Component
-     and module Step_core := Step_core
-end
-
-module type Step_monad = sig
-  module type S = S
-
-  module M = M
-
-  module Make
-      (Input_monad : Monad.S)
-      (Component : Component.M(Input_monad).S)
-      (Step_core : Step_core.M(Input_monad)(Component).S) :
-    M(Input_monad)(Component)(Step_core).S
+  val run_effectful_computation
+    :  (('i, 'o) Step_core.Computation.Eff.Handler.t @ local -> 'a)
+    -> ('a, 'i, 'o) t
 end

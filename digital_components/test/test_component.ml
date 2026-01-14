@@ -1,7 +1,6 @@
 open Base
 open Expect_test_helpers_base
 open Digital_components
-module Component = Component.Make (Monad.Ident)
 open Component
 
 let run_with_inputs (t : _ Component.t) inputs =

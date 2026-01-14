@@ -1,15 +1,10 @@
 open! Core
 open Hardcaml
+open Digital_components
 include Hardcaml_event_driven_sim.Two_state_simulator
-module Step_modules = Hardcaml_step_testbench_kernel.Step_modules.Event_driven_sim
-module Step_monad = Step_modules.Step_monad
-
-module type S =
-  Imperative_event_driven_sim_intf.S with module Step_modules := Step_modules
-
+module Step_monad = Step_monad
 module Deferred = Event_driven_sim.Mini_async.Deferred
-include Imperative.Make (Step_modules)
-open Step_modules
+include Imperative
 
 module Simulation_step = struct
   type t = Bits.t Simulator.Signal.t -> unit Deferred.t
@@ -58,9 +53,9 @@ let next_input ~simulation_step ~timeout ~clock ~result_event =
     match Step_monad.Event.value result_event with
     | None ->
       if timedout ()
-      then Deferred.return Step_monad.Component.Next_input.Finished
-      else Deferred.return (Step_monad.Component.Next_input.Input O_data.undefined)
-    | Some _ -> Deferred.return Step_monad.Component.Next_input.Finished
+      then Deferred.return Component.Next_input.Finished
+      else Deferred.return (Component.Next_input.Input O_data.undefined)
+    | Some _ -> Deferred.return Component.Next_input.Finished
 ;;
 
 type ('a, 'r) run =
@@ -70,6 +65,8 @@ type ('a, 'r) run =
   -> clock:Logic.t Simulator.Signal.t
   -> testbench:(unit -> 'a t)
   -> 'r
+
+include Component.Run_component_until_finished (Deferred)
 
 let deferred
   ?timeout
@@ -90,7 +87,7 @@ let deferred
   fun () ->
     let open Simulator.Async.Deferred.Let_syntax in
     let%map () =
-      Step_monad.Component.run_until_finished
+      run_component_until_finished
         component
         ~first_input:O_data.undefined
         ~next_input:(next_input ~simulation_step ~timeout ~clock ~result_event)

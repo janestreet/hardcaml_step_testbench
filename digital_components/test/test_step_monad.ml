@@ -3,15 +3,14 @@ open Expect_test_helpers_core
 module Data = Digital_components.Data
 
 include struct
-  module Component = Digital_components.Component.Make (Monad.Ident)
-  module Step_core = Digital_components.Step_core.Make (Monad.Ident) (Component)
-
-  module Step_monad =
-    Digital_components.Step_monad.Make (Monad.Ident) (Component) (Step_core)
+  open Digital_components
+  module Component = Component
+  module Step_monad = Step_monad
 end
 
 open Step_monad
 open! Step_monad.Let_syntax
+include Component.Run_component_until_finished (Monad.Ident)
 
 let run_with_inputs (t : _ Component.t) inputs =
   let sexp_of_input = Component.sexp_of_input t in
@@ -33,7 +32,7 @@ let create_component ?(update_children_after_finish = false) created_at start =
 
 let test start =
   let component, component_finished = create_component [%here] start () in
-  Component.run_until_finished
+  run_component_until_finished
     component
     ~show_steps:true
     ~first_input:()
@@ -566,7 +565,7 @@ let%expect_test "finished child doesn't contribute to output" =
         return { Component_finished.output = "after"; result = () })
       ()
   in
-  Component.run_until_finished
+  run_component_until_finished
     component
     ~show_steps:true
     ~first_input:()

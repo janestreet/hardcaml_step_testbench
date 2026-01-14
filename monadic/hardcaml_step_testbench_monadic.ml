@@ -1,6 +1,10 @@
-module Before_and_after_edge = Hardcaml_step_testbench_kernel.Before_and_after_edge
-module Io_ports_for_imperative = Hardcaml_step_testbench_kernel.Io_ports_for_imperative
-module Step_modules = Hardcaml_step_testbench_kernel.Step_modules
+include struct
+  open Hardcaml_step_testbench_kernel
+  module Step_monad = Step_monad
+  module Component = Component
+  module Before_and_after_edge = Before_and_after_edge
+  module Io_ports_for_imperative = Io_ports_for_imperative
+end
 
 module Functional = struct
   include Functional

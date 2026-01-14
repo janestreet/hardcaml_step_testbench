@@ -35,7 +35,7 @@ module Dut = struct
 end
 
 module Sim = Cyclesim.With_interface (Dut.I) (Dut.O)
-module Step = Hardcaml_step_testbench.Imperative.Cyclesim
+module Step = Hardcaml_step_testbench.Monadic.Imperative.Cyclesim
 
 let create_sim () : Sim.t = Sim.create Dut.create
 

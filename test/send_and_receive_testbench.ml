@@ -32,11 +32,9 @@ let make_circuit (i : Signal.t I.t) =
   { O.source = { i.source with data = count @: i.source.data.:[15, 0] } }
 ;;
 
-module Make (Step_modules : Hardcaml_step_testbench.Step_modules.S) = struct
-  module Tb_source =
-    Hardcaml_step_testbench.Functional.Make (Step_modules) (Source) (Source)
-
-  module Tb = Hardcaml_step_testbench.Functional.Make (Step_modules) (I) (O)
+module Monadic = struct
+  module Tb_source = Hardcaml_step_testbench.Monadic.Functional.Make (Source) (Source)
+  module Tb = Hardcaml_step_testbench.Monadic.Functional.Make (I) (O)
 
   let rec send_data ~first ~num_words _ : unit Tb_source.t =
     let open Tb_source.Let_syntax in
@@ -94,11 +92,9 @@ module Make (Step_modules : Hardcaml_step_testbench.Step_modules.S) = struct
   ;;
 end
 
-module Make_effectful (Step_modules : Hardcaml_step_testbench.Step_modules.S) = struct
-  module Tb_source =
-    Hardcaml_step_testbench_effectful.Functional.Make (Step_modules) (Source) (Source)
-
-  module Tb = Hardcaml_step_testbench_effectful.Functional.Make (Step_modules) (I) (O)
+module Effectful = struct
+  module Tb_source = Hardcaml_step_testbench_effectful.Functional.Make (Source) (Source)
+  module Tb = Hardcaml_step_testbench_effectful.Functional.Make (I) (O)
 
   let rec send_data ~first ~num_words _ (h : Tb_source.Handler.t @ local) : unit =
     if num_words = 0

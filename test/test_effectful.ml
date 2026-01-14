@@ -2,18 +2,13 @@ open! Import
 open Hardcaml_waveterm
 
 module%test [@tags "runtime5-only"] _ = struct
-  module Cyclesim_step_modules =
-    Hardcaml_step_testbench_effectful.Functional.Cyclesim.Step_modules
-
   (* Run an example with 2 tasks. One task generates a packet framed by a randomly
      generated [valid] signal. The second task receives the packet. The data is modified
      by the hardware model by inserting a word count within the upper 16 bits. The
      received packet is shown. *)
   let%expect_test "testbench" =
-    let module Effectful =
-      Send_and_receive_testbench.Make_effectful (Cyclesim_step_modules)
-    in
-    let module Monadic = Send_and_receive_testbench.Make (Cyclesim_step_modules) in
+    let module Effectful = Send_and_receive_testbench.Effectful in
+    let module Monadic = Send_and_receive_testbench.Monadic in
     let module Tb =
       Hardcaml_step_testbench_effectful.Functional.Cyclesim.Make
         (Send_and_receive_testbench.I)

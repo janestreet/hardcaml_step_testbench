@@ -1,6 +1,5 @@
 open! Core
 open Hardcaml_event_driven_sim.Two_state_simulator
-module Step_modules = Hardcaml_step_testbench_kernel.Step_modules.Event_driven_sim
 
 module type S = sig
   include Imperative.S
@@ -36,11 +35,9 @@ module type S = sig
 end
 
 module type Imperative_event_driven_sim = sig
-  module Step_modules = Step_modules
-
   include
     Hardcaml_event_driven_sim.S
     with type Logic.t = Hardcaml_event_driven_sim.Two_state_logic.t
 
-  include S with module Step_modules := Step_modules
+  include S
 end

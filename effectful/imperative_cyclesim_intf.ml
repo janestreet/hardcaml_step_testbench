@@ -1,8 +1,7 @@
 open! Core
 open Hardcaml
-module Step_modules = Hardcaml_step_testbench_kernel.Step_modules.Cyclesim
 
-module type S = sig
+module type Imperative_cyclesim = sig
   include Imperative.S
 
   (** Run the testbench until the main task finishes.
@@ -63,9 +62,4 @@ module type S = sig
     -> testbenches:(Handler.t @ local -> never_returns) list
     -> ('i, 'o) Cyclesim.t
     -> ('i, 'o) Cyclesim.t
-end
-
-module type Imperative_cyclesim = sig
-  module Step_modules = Step_modules
-  include S with module Step_modules := Step_modules
 end

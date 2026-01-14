@@ -1,6 +1,6 @@
 (library
  (name digital_components)
  (public_name hardcaml_step_testbench.digital_components)
- (libraries core oxcaml_effect stdio unique)
+ (libraries core handled_effect stdio unique)
  (preprocess
   (pps ppx_jane)))

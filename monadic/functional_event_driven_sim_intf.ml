@@ -4,7 +4,6 @@
 open! Core
 open Hardcaml
 open Hardcaml_event_driven_sim.Two_state_simulator
-module Step_modules = Hardcaml_step_testbench_kernel.Step_modules.Event_driven_sim
 
 module type S = sig
   include Functional.S
@@ -45,21 +44,19 @@ end
 
 module M (I : Interface.S) (O : Interface.S) = struct
   module type S = sig
-    module Step_monad = Step_modules.Step_monad
-    module Step_modules = Step_modules
-    include S with module Step_modules := Step_modules and module I = I and module O = O
+    module Step_monad = Digital_components.Step_monad
+    include S with module I = I and module O = O
   end
 end
 
 module type Functional_event_driven_sim = sig
-  module Step_modules = Step_modules
   module M = M
 
   include
     Hardcaml_event_driven_sim.S
     with type Logic.t = Hardcaml_event_driven_sim.Two_state_logic.t
 
-  module type S = S with module Step_modules := Step_modules
+  module type S = S
 
   module Make (I : Interface.S) (O : Interface.S) : M(I)(O).S
 end

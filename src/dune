@@ -1,0 +1,7 @@
+(library
+ (name hardcaml_step_testbench)
+ (public_name hardcaml_step_testbench)
+ (libraries hardcaml_step_testbench_effectful hardcaml_step_testbench_kernel
+   hardcaml_step_testbench_monadic)
+ (preprocess
+  (pps ppx_jane)))

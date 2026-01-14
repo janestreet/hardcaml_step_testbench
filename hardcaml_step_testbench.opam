@@ -12,10 +12,10 @@ build: [
 depends: [
   "ocaml" {>= "5.1.0"}
   "core"
+  "handled_effect"
   "hardcaml"
   "hardcaml_event_driven_sim"
   "hardcaml_waveterm"
-  "oxcaml_effect"
   "ppx_jane"
   "stdio"
   "unique"

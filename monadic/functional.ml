@@ -6,12 +6,11 @@ module type S = Functional_intf.S
 
 module M = Functional_intf.M
 
-module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) = struct
-  open Step_modules
+module Make (I : Interface.S) (O : Interface.S) = struct
   module I = I
   module O = O
   module Io_ports_for_imperative = Hardcaml_step_testbench_kernel.Io_ports_for_imperative
-  module Before_and_after_edge = Hardcaml_step_testbench_kernel.Before_and_after_edge
+  module Before_and_after_edge = Before_and_after_edge
 
   module Interface_as_data (I : Interface.S) :
     Digital_components.Data.S with type t = Bits.t I.t = struct
@@ -70,7 +69,7 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
   ;;
 
   let for_ lo hi f = Step_monad.for_ lo hi f
-  let delay i ~num_cycles = Step_monad.delay i ~num_steps:num_cycles
+  let delay ?(num_cycles = 1) i = Step_monad.delay i ~num_steps:num_cycles
 
   let merge_inputs ~parent ~child =
     I.map2 parent child ~f:(fun p c -> if Bits.is_empty c then p else c)
@@ -196,6 +195,10 @@ module Make (Step_modules : Step_modules.S) (I : Interface.S) (O : Interface.S) 
     forever (fun () ->
       let%bind _ = cycle input_hold in
       return ())
+  ;;
+
+  let run_effectful_computation computation =
+    Step_monad.run_effectful_computation computation
   ;;
 
   module List = struct
