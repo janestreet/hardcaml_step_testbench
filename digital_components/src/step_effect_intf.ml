@@ -13,15 +13,15 @@ module type Step_effect = sig
   end
 
   val current_input : ('i, 'o) Handler.t -> 'i
-  val next_step : Source_code_position.t -> 'o -> ('i, 'o) Handler.t -> 'i
-  val thunk : (unit -> ('i, 'o) Handler.t -> 'a) -> ('i, 'o) Handler.t -> 'a
-  val output_forever : 'o -> ('i, 'o) Handler.t -> _
+  val next_step : ('i, 'o) Handler.t -> Source_code_position.t -> 'o -> 'i
+  val thunk : ('i, 'o) Handler.t -> (unit -> ('i, 'o) Handler.t -> 'a) -> 'a
+  val output_forever : ('i, 'o) Handler.t -> 'o -> _
 
   (** [delay o ~num_steps] outputs [o] for [num_steps] and then returns unit. [delay]
       raises if [num_steps < 0]. *)
-  val delay : 'o -> num_steps:int -> ('i, 'o) Handler.t -> unit
+  val delay : ('i, 'o) Handler.t -> 'o -> num_steps:int -> unit
 
-  val wait : output:'o -> until:('i -> bool) -> ('i, 'o) Handler.t -> unit
+  val wait : ('i, 'o) Handler.t -> output:'o -> until:('i -> bool) -> unit
 
   (** An event is a value that will at some point in time (possibly the past, possibly the
       future) transition from "undetermined" to "determined", with some value. One can
@@ -34,7 +34,7 @@ module type Step_effect = sig
 
   (** [wait_for event ~output] outputs [output] until the step at which [event] becomes
       determined, at which point the [wait_for] proceeds. *)
-  val wait_for : 'a Event.t -> output:'o -> ('i, 'o) Handler.t -> 'a
+  val wait_for : ('i, 'o) Handler.t -> 'a Event.t -> output:'o -> 'a
 
   module Component_finished = Component_finished
 
@@ -48,13 +48,13 @@ module type Step_effect = sig
   val spawn
     :  ?update_children_after_finish:bool (** default is [false] *)
     -> ?period:int (** defaults to the period of the parent at run time *)
+    -> ('i, 'o) Handler.t
     -> Source_code_position.t
-    -> start:('i_c -> ('i_c, 'o_c) Handler.t -> ('a, 'o_c) Component_finished.t)
+    -> start:(('i_c, 'o_c) Handler.t -> 'i_c -> ('a, 'o_c) Component_finished.t)
     -> input:'i_c Data.t
     -> output:'o_c Data.t
     -> child_input:(parent:'i -> 'i_c)
     -> include_child_output:(parent:'o -> child:'o_c -> 'o)
-    -> ('i, 'o) Handler.t
     -> ('a, 'o_c) Component_finished.t Event.t
 
   (** [create_component] creates a [Component.t] that runs the computation described by
@@ -65,14 +65,9 @@ module type Step_effect = sig
     :  ?period:int (** defaults to the period of the parent at run time *)
     -> created_at:Source_code_position.t
     -> update_children_after_finish:bool
-    -> start:('i -> ('i, 'o) Handler.t -> ('a, 'o) Component_finished.t)
+    -> start:(('i, 'o) Handler.t -> 'i -> ('a, 'o) Component_finished.t)
     -> input:'i Data.t
     -> output:'o Data.t
     -> unit
     -> ('i, 'o) Component.t * ('a, 'o) Component_finished.t Event.t
-
-  val run_monadic_computation
-    :  ('i, 'o) Handler.t
-    -> ('a, 'i, 'o) Step_core.Computation.Monadic.t
-    -> 'a
 end

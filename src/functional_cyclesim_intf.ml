@@ -25,7 +25,7 @@ module type S = sig
     -> ?timeout:int (** default is [None] *)
     -> unit
     -> simulator:Simulator.t
-    -> testbench:(O_data.t -> 'a t)
+    -> testbench:(Handler.t -> O_data.t -> 'a)
     -> 'a option
 
   (** Run the testbench until completion. *)
@@ -35,21 +35,19 @@ module type S = sig
     -> ?update_children_after_finish:bool (** default is [false] *)
     -> unit
     -> simulator:Simulator.t
-    -> testbench:(O_data.t -> 'a t)
+    -> testbench:(Handler.t -> O_data.t -> 'a)
     -> 'a
 end
 
 module M (I : Interface.S) (O : Interface.S) = struct
   module type S = sig
-    module Step_monad = Digital_components.Step_monad
     include S with module I = I and module O = O
   end
 end
 
 module type Functional_cyclesim = sig
-  module M = M
-
   module type S = S
 
+  module M = M
   module Make (I : Interface.S) (O : Interface.S) : M(I)(O).S
 end

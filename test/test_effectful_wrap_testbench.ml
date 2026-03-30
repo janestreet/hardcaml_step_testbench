@@ -36,7 +36,7 @@ module%test [@tags "runtime5-only"] _ = struct
   end
 
   module Sim = Cyclesim.With_interface (Dut.I) (Dut.O)
-  module Step = Hardcaml_step_testbench_effectful.Imperative.Cyclesim
+  module Step = Hardcaml_step_testbench.Imperative.Cyclesim
 
   let create_sim () : Sim.t = Sim.create Dut.create
 
@@ -49,7 +49,7 @@ module%test [@tags "runtime5-only"] _ = struct
       let a = ref 0 in
       let b = ref 0 in
       let cycle = ref 0 in
-      Step.forever handler (fun handler () ->
+      Step.forever handler (fun handler ->
         a := !a + 1;
         b := !b + 2;
         let o_before = Dut.O.map ~f:(fun a -> to_int_trunc !a) o_before in
@@ -64,7 +64,7 @@ module%test [@tags "runtime5-only"] _ = struct
             (Sexp_pretty.sexp_to_string
                [%message (step : int) (o_before : int Dut.O.t) (o_after : int Dut.O.t)]);
         cycle := !cycle + 1;
-        Step.cycle handler ~num_cycles:1 ())
+        Step.cycle handler)
     in
     let sim =
       Step.wrap_never_returns ~when_to_evaluate_testbenches ~testbenches:[ testbench ] sim

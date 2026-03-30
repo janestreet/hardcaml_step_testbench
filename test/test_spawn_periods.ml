@@ -35,7 +35,7 @@ let run f ~count =
 ;;
 
 module Functional = struct
-  module Step = Hardcaml_step_testbench_effectful.Functional.Cyclesim.Make (I) (O)
+  module Step = Hardcaml_step_testbench.Functional.Cyclesim.Make (I) (O)
 
   type finished_event = (unit, Step.I_data.t) Step.finished_event
 
@@ -61,7 +61,7 @@ module Functional = struct
           ignore (Step.spawn handler (tick ~name:"% 3") : finished_event);
           ignore (Step.spawn handler (tick ~name:"% 2") ~period:2 : finished_event);
           ignore (Step.spawn handler (tick ~name:"% 4") ~period:4 : finished_event);
-          Step.delay ~num_cycles:1 handler Step.input_hold;
+          Step.delay handler Step.input_hold;
           Step.spawn handler (tick ~name:"% 5") ~period:5 |> Step.wait_for handler)
       in
       Step.delay handler ~num_cycles:21 Step.input_hold;
@@ -70,7 +70,7 @@ module Functional = struct
 end
 
 module Imperative = struct
-  module Step = Hardcaml_step_testbench_effectful.Imperative.Cyclesim
+  module Step = Hardcaml_step_testbench.Imperative.Cyclesim
 
   type finished_event = (unit, Step.I_data.t) Step.finished_event
 
@@ -88,10 +88,10 @@ module Imperative = struct
   ;;
 
   let frequency_test ~count ~print_waves =
-    let rec tick handler ~name () =
+    let rec tick handler ~name =
       print_endline [%string {|  tick %{name}|}];
-      Step.cycle handler ();
-      tick handler ~name ()
+      Step.cycle handler;
+      tick handler ~name
     in
     run_test ~count ~print_waves (fun handler ~inputs:_ ~outputs:_ ->
       let _ : finished_event =
@@ -99,10 +99,10 @@ module Imperative = struct
           ignore (Step.spawn handler (tick ~name:"% 3") : finished_event);
           ignore (Step.spawn handler (tick ~name:"% 2") ~period:2 : finished_event);
           ignore (Step.spawn handler (tick ~name:"% 4") ~period:4 : finished_event);
-          Step.cycle handler ();
+          Step.cycle handler;
           Step.spawn handler (tick ~name:"% 5") ~period:5 |> Step.wait_for handler)
       in
-      Step.cycle handler ~num_cycles:21 ();
+      Step.cycle handler ~num_cycles:21;
       Bits.zero 4)
   ;;
 end

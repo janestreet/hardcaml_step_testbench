@@ -1,6 +1,6 @@
 open Core
 open Hardcaml
-open Hardcaml_step_testbench_kernel
+open Digital_components
 
 module type S = Functional_intf.S
 
@@ -9,8 +9,8 @@ module M = Functional_intf.M
 module Make (I : Interface.S) (O : Interface.S) = struct
   module I = I
   module O = O
-  module Io_ports_for_imperative = Hardcaml_step_testbench_kernel.Io_ports_for_imperative
-  module Before_and_after_edge = Hardcaml_step_testbench_kernel.Before_and_after_edge
+  module Io_ports_for_imperative = Io_ports_for_imperative
+  module Before_and_after_edge = Hardcaml.Before_and_after_edge
 
   module Interface_as_data (I : Interface.S) :
     Digital_components.Data.S with type t = Bits.t I.t = struct
@@ -56,14 +56,14 @@ module Make (I : Interface.S) (O : Interface.S) = struct
     if num_cycles < 1
     then raise_s [%message "cycle must take 1 or more num_cycles" (num_cycles : int)]
     else if num_cycles = 1
-    then Step_effect.next_step [%here] i handler
+    then Step_effect.next_step handler [%here] i
     else (
-      Step_effect.delay i ~num_steps:1 handler;
+      Step_effect.delay handler i ~num_steps:1;
       cycle handler ~num_cycles:(num_cycles - 1) i)
   ;;
 
   let delay ?(num_cycles = 1) (handler : Handler.t) i =
-    Step_effect.delay i ~num_steps:num_cycles handler
+    Step_effect.delay handler i ~num_steps:num_cycles
   ;;
 
   let merge_inputs ~parent ~child =
@@ -89,14 +89,14 @@ module Make (I : Interface.S) (O : Interface.S) = struct
     Step_effect.spawn
       ?update_children_after_finish
       ?period
+      parent_handler
       [%here]
-      ~start:(fun output handler -> start handler task output)
+      ~start:(fun handler output -> start handler task output)
       ~input:(module O_data)
       ~output:(module I_data)
       ~child_input:(fun ~parent ->
         Before_and_after_edge.map2 ~f:(fun f x -> f x) outputs parent)
       ~include_child_output:inputs
-      parent_handler
   ;;
 
   let spawn_io ?update_children_after_finish ?period ~inputs ~outputs parent_handler task =
@@ -171,7 +171,7 @@ module Make (I : Interface.S) (O : Interface.S) = struct
   ;;
 
   let wait_for (handler : Handler.t) (event : _ finished_event) =
-    let x = Step_effect.wait_for event ~output:I_data.undefined handler in
+    let x = Step_effect.wait_for handler event ~output:I_data.undefined in
     x.result
   ;;
 
@@ -191,7 +191,7 @@ module Make (I : Interface.S) (O : Interface.S) = struct
         parent_handler
         task
     in
-    let finished = Step_effect.wait_for ev_never_returns ~output:() parent_handler in
+    let finished = Step_effect.wait_for parent_handler ev_never_returns ~output:() in
     finished.result
   ;;
 
@@ -211,13 +211,13 @@ module Make (I : Interface.S) (O : Interface.S) = struct
       if timeout_in_cycles = 0
       then None
       else (
-        delay handler input_hold ~num_cycles:1;
+        delay handler input_hold;
         wait_for_with_timeout handler event ~timeout_in_cycles:(timeout_in_cycles - 1))
   ;;
 
   let forever (handler : Handler.t) f : never_returns =
     while true do
-      f handler ()
+      f handler
     done;
     assert false
   ;;
@@ -225,29 +225,6 @@ module Make (I : Interface.S) (O : Interface.S) = struct
   let forever_unit (handler : Handler.t) f = ignore (forever handler f : never_returns)
 
   let never (handler : Handler.t) : never_returns =
-    forever handler (fun handler () ->
-      delay handler input_hold ~num_cycles:1;
-      ())
+    forever handler (fun handler -> delay handler input_hold)
   ;;
-
-  let run_monadic_computation
-    (type a)
-    h
-    (computation : (a, O_data.t, I_data.t) Step_monad.t)
-    : a
-    =
-    Step_effect.run_monadic_computation h computation
-  ;;
-
-  module As_monad = struct
-    type 'a t = Handler.t -> 'a
-
-    include Monad.Make (struct
-        type nonrec 'a t = 'a t
-
-        let return x _ = x
-        let bind (a : _ t) ~f : _ t = fun h -> f (a h) h
-        let map = `Define_using_bind
-      end)
-  end
 end

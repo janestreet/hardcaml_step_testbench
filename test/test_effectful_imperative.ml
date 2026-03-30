@@ -24,33 +24,33 @@ module%test [@tags "runtime5-only"] _ = struct
   ;;
 
   module Sim = Cyclesim.With_interface (I) (O)
-  module Step = Hardcaml_step_testbench_effectful.Imperative.Cyclesim
+  module Step = Hardcaml_step_testbench.Imperative.Cyclesim
 
   (* A thread which controls the [step]
 
      returns a string to show we can.
   *)
-  let rec incr_step i step (inputs : _ I.t) handler () =
+  let rec incr_step i step (inputs : _ I.t) handler =
     inputs.step := Bits.of_int_trunc ~width:8 step;
     if step = 4
     then (
       inputs.step := Bits.of_int_trunc ~width:8 0;
       "hello!!!")
     else if i = step
-    then incr_step 0 (step + 1) inputs handler ()
+    then incr_step 0 (step + 1) inputs handler
     else (
-      Step.cycle handler ();
-      incr_step (i + 1) step inputs handler ())
+      Step.cycle handler;
+      incr_step (i + 1) step inputs handler)
   ;;
 
   (* master thread which controls [enable] *)
   let testbench (inputs : _ I.t) (outputs : _ O.t) handler =
-    let hello = Step.spawn handler (fun handler () -> incr_step 0 0 inputs handler ()) in
-    Step.cycle handler ();
+    let hello = Step.spawn handler (fun handler -> incr_step 0 0 inputs handler) in
+    Step.cycle handler;
     inputs.enable := Bits.vdd;
-    Step.cycle handler ~num_cycles:3 ();
+    Step.cycle handler ~num_cycles:3;
     inputs.enable := Bits.gnd;
-    Step.cycle handler ~num_cycles:1 ();
+    Step.cycle handler;
     inputs.enable := Bits.vdd;
     let hello = Step.wait_for handler hello in
     Bits.to_int_trunc !(outputs.q), hello
@@ -84,8 +84,7 @@ module%test [@tags "runtime5-only"] _ = struct
   ;;
 
   module%test Spawn_functional_step = struct
-    module Functional_step =
-      Hardcaml_step_testbench_effectful.Functional.Cyclesim.Make (I) (O)
+    module Functional_step = Hardcaml_step_testbench.Functional.Cyclesim.Make (I) (O)
 
     let testbench (sim : Sim.t) (h : Step.Handler.t) =
       let io_ports =
@@ -140,10 +139,9 @@ module%test [@tags "runtime5-only"] _ = struct
       in
       Functional_step.exec_never_returns_from_imperative io_ports h (fun h _ ->
         let ctr = ref 1 in
-        Functional_step.forever h (fun h () ->
+        Functional_step.forever h (fun h ->
           Functional_step.delay
             h
-            ~num_cycles:1
             { Functional_step.input_hold with
               enable = Bits.vdd
             ; step = Bits.of_int_trunc ~width:8 !ctr
@@ -201,10 +199,8 @@ module%test [@tags "runtime5-only"] _ = struct
       { O.q = Signal.reg_fb spec ~enable ~width:8 ~f:(fun d -> Signal.( +:. ) d 1) }
     ;;
 
-    module Event_simulator =
-      Hardcaml_step_testbench_effectful.Imperative.Event_driven_sim.Simulator
-
-    module Step = Hardcaml_step_testbench_effectful.Imperative.Event_driven_sim
+    module Event_simulator = Hardcaml_step_testbench.Imperative.Event_driven_sim.Simulator
+    module Step = Hardcaml_step_testbench.Imperative.Event_driven_sim
 
     module Evsim =
       Hardcaml_event_driven_sim.With_interface
@@ -216,20 +212,20 @@ module%test [@tags "runtime5-only"] _ = struct
       let time () = Event_simulator.Async.current_time () in
       let ( <-- ) = Event_simulator.( <-- ) in
       input.enable.signal <-- Bits.vdd;
-      Step.cycle h ();
+      Step.cycle h;
       print_s [%message "Stepping 1" (time () : int)];
       input.enable.signal <-- Bits.gnd;
-      Step.cycle h ();
+      Step.cycle h;
       print_s [%message "Stepping 2" (time () : int)];
-      Step.cycle h ();
+      Step.cycle h;
       print_s [%message "Stepping 3" (time () : int)];
       input.enable.signal <-- Bits.vdd;
-      Step.cycle h ();
+      Step.cycle h;
       print_s [%message "Stepping 4" (time () : int)];
-      Step.cycle h ();
+      Step.cycle h;
       print_s [%message "Stepping 5" (time () : int)];
       input.enable.signal <-- Bits.gnd;
-      Step.cycle h ()
+      Step.cycle h
     ;;
 
     let run () =

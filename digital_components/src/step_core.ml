@@ -6,69 +6,26 @@ include Step_core_intf
 module Computation = struct
   type 'a aliased_many = 'a Modes.Aliased_many.t
 
-  module rec Monadic : sig
-    type ('a, 'i, 'o) t =
-      | Bind : ('a, 'i, 'o) t * ('a -> ('b, 'i, 'o) t) -> ('b, 'i, 'o) t
-      | Current_input : ('i, 'i, 'o) t
-      | Next_period : Source_code_position.t * 'o -> ('i, 'i, 'o) t
-      | Return : 'a -> ('a, _, _) t
-      | Thunk : (unit -> ('a, 'i, 'o) t) -> ('a, 'i, 'o) t
+  module Effect_ops = struct
+    type ('a, 'i, 'o, 'effect) t =
+      | Current_input : ('i aliased_many, 'i, 'o, 'effect) t
+      | Next_period : Source_code_position.t * 'o -> ('i aliased_many, 'i, 'o, 'effect) t
       | Spawn :
           { child : ('i_c, 'o_c) Component.t
           ; child_finished : (_, 'o_c) Component_finished.t Event.t
           ; child_input : parent:'i -> 'i_c
           ; include_child_output : parent:'o -> child:'o_c -> 'o
           }
-          -> (unit, 'i, 'o) t
-      | Exec_effectful : (('i, 'o) Eff.Handler.t -> 'a) -> ('a, 'i, 'o) t
-    [@@deriving sexp_of]
-
-    include Monad.S3 with type ('a, 'i, 'o) t := ('a, 'i, 'o) t
-  end = struct
-    module T = struct
-      type ('a, 'i, 'o) t = ('a, 'i, 'o) Monadic.t =
-        | Bind : ('a, 'i, 'o) t * ('a -> ('b, 'i, 'o) t) -> ('b, 'i, 'o) t
-        | Current_input : ('i, 'i, 'o) t
-        | Next_period : Source_code_position.t * 'o -> ('i, 'i, 'o) t
-        | Return : 'a -> ('a, _, _) t
-        | Thunk : (unit -> ('a, 'i, 'o) t) -> ('a, 'i, 'o) t
-        | Spawn :
-            { child : ('i_c, 'o_c) Component.t
-            ; child_finished : (_, 'o_c) Component_finished.t Event.t
-            ; child_input : parent:'i -> 'i_c
-            ; include_child_output : parent:'o -> child:'o_c -> 'o
-            }
-            -> (unit, 'i, 'o) t
-        | Exec_effectful : (('i, 'o) Eff.Handler.t -> 'a) -> ('a, 'i, 'o) t
-      [@@deriving sexp_of]
-
-      let return x = Return x
-      let bind t ~f = Bind (t, f)
-      let map = `Define_using_bind
-    end
-
-    include T
-    include Monad.Make3 (T)
+          -> (unit aliased_many, 'i, 'o, 'effect) t
   end
 
-  and Effect_ops : sig
-    type ('a, 'i, 'o, 'eff) t =
-      | Next_period : Source_code_position.t * 'o -> ('i aliased_many, 'i, 'o, 'eff) t
-      | Exec_monadic : ('a, 'i, 'o) Monadic.t -> ('a aliased_many, 'i, 'o, 'eff) t
-  end = struct
-    type ('a, 'i, 'o, 'effect) t =
-      | Next_period : Source_code_position.t * 'o -> ('i aliased_many, 'i, 'o, 'effect) t
-      | Exec_monadic : ('a, 'i, 'o) Monadic.t -> ('a aliased_many, 'i, 'o, 'effect) t
-  end
+  module Eff = Handled_effect.Make2_rec (Effect_ops)
 
-  and Eff :
-    (Handled_effect.S2
-    with type ('a, 'i, 'o, 'eff) ops := ('a, 'i, 'o, 'eff) Effect_ops.t) =
-    Handled_effect.Make2_rec (Effect_ops)
-
-  type ('a, 'i, 'o) t =
-    | Monadic of ('a, 'i, 'o) Monadic.t
-    | Effectful of (('i, 'o) Eff.Handler.t -> 'a)
+  (* This is a variant to make it more explicit that the computation is a function and
+     avoid accidental currying. [@@unboxed] avoids the additional runtime cost of a
+     variant.
+  *)
+  type ('a, 'i, 'o) t = T of (('i, 'o) Eff.Handler.t -> 'a) [@@unboxed]
 end
 
 module Runner = struct
@@ -77,9 +34,6 @@ module Runner = struct
 
   module Continuation = struct
     type ('a, 'i, 'o) t =
-      | Monad_bind :
-          ('a -> ('b, 'i, 'o) Computation.Monadic.t) * ('b, 'i, 'o) t
-          -> ('a, 'i, 'o) t
       | Effect_continuation :
           ((('a Modes.Aliased_many.t, 'b, 'i, 'o, unit) Computation.Eff.Continuation.t
               Unique.Once.t
@@ -178,8 +132,7 @@ module Runner = struct
       =
       fun computation continuation ->
       match computation with
-      | Monadic computation -> handle_monad computation continuation
-      | Effectful computation -> handle_eff (Computation.Eff.run computation) continuation
+      | T computation -> handle_eff (Computation.Eff.run computation) continuation
     and handle_eff
       : type a.
         (a, i, o, unit) Computation.Eff.result
@@ -192,6 +145,10 @@ module Runner = struct
       | Exception exn -> raise exn
       | Operation (effect, k) ->
         (match effect with
+         | Current_input ->
+           handle_eff
+             (Handled_effect.continue k { aliased_many = current_input } [])
+             continuation
          | Next_period (_, o) ->
            { output = o
            ; next_state =
@@ -201,38 +158,15 @@ module Runner = struct
                      Continuation.Effect_continuation (Unique.Once.make k, continuation)
                  }
            }
-         | Exec_monadic monad ->
-           handle_monad
-             monad
-             (Continuation.Effect_continuation (Unique.Once.make k, continuation)))
-    and handle_monad
-      : type a.
-        (a, i, o) Computation.Monadic.t
-        -> (a, i, o) Continuation.t
-        -> (i, o) output_and_next_state
-      =
-      fun computation continuation ->
-      match computation with
-      | Bind (computation, f) -> handle_monad computation (Monad_bind (f, continuation))
-      | Current_input -> continue continuation { aliased_many = current_input }
-      | Next_period (_, output) ->
-        { output
-        ; next_state =
-            Running { num_steps_to_stall = next_period_steps_to_stall; continuation }
-        }
-      | Return a -> continue continuation { aliased_many = a }
-      | Thunk f -> handle_monad (f ()) continuation
-      | Spawn { child; child_finished; child_input; include_child_output } ->
-        t.children
-        <- Child.create
-             ~child_finished
-             ~child_input
-             ~component:child
-             ~include_child_output
-           :: t.children;
-        continue continuation { aliased_many = () }
-      | Exec_effectful computation ->
-        handle_eff (Computation.Eff.run computation) continuation
+         | Spawn { child; child_finished; child_input; include_child_output } ->
+           t.children
+           <- Child.create
+                ~child_finished
+                ~child_input
+                ~component:child
+                ~include_child_output
+              :: t.children;
+           handle_eff (Handled_effect.continue k { aliased_many = () } []) continuation)
     and continue
       : type a.
         (a, i, o) Continuation.t -> a Modes.Aliased_many.t -> (i, o) output_and_next_state
@@ -241,7 +175,6 @@ module Runner = struct
       let module C = Continuation in
       match continuation with
       | C.Empty -> { output = a.aliased_many; next_state = Finished a.aliased_many }
-      | C.Monad_bind (f, c) -> step (Monadic (f a.aliased_many)) c
       | C.Effect_continuation (computation_to_resume, continuation) ->
         handle_eff
           (Handled_effect.continue (Unique.Once.get_exn computation_to_resume) a [])

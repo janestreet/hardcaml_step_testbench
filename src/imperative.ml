@@ -1,7 +1,6 @@
 open! Core
 open! Hardcaml
 open! Digital_components
-open! Hardcaml_step_testbench_kernel
 
 module type S = Imperative_intf.S
 
@@ -13,25 +12,22 @@ module I_data = struct
 end
 
 module O_data = struct
-  type t = unit Hardcaml_step_testbench_kernel.Before_and_after_edge.t
-  [@@deriving sexp_of]
+  type t = unit Before_and_after_edge.t [@@deriving sexp_of]
 
   let equal _ _ = true
-  let undefined = Hardcaml_step_testbench_kernel.Before_and_after_edge.const ()
+  let undefined = Before_and_after_edge.const ()
 end
 
 module Handler = struct
   type t = (O_data.t, I_data.t) Step_effect.Handler.t
 end
 
-let rec cycle (handler : Handler.t) ?(num_cycles = 1) () =
+let cycle ?(num_cycles = 1) (handler : Handler.t) =
   if num_cycles < 0
-  then raise_s [%message "cycle must take 0 or more num_cycles" (num_cycles : int)]
-  else if num_cycles = 0
-  then ()
-  else (
-    let (_ : O_data.t) = Step_effect.next_step [%here] () handler in
-    cycle handler ~num_cycles:(num_cycles - 1) ())
+  then raise_s [%message "cycle must take 0 or more num_cycles" (num_cycles : int)];
+  for _ = 1 to num_cycles do
+    ignore (Step_effect.next_step handler [%here] () : O_data.t)
+  done
 ;;
 
 let start (handler : Handler.t) testbench output =
@@ -42,24 +38,25 @@ let start (handler : Handler.t) testbench output =
 type ('a, 'i) finished_event =
   ('a, 'i) Step_effect.Component_finished.t Step_effect.Event.t
 
-let spawn (type a) ?period (handler : Handler.t) (task : Handler.t -> unit -> a)
+let spawn (type a) ?period (handler : Handler.t) (task : Handler.t -> a)
   : (a, unit) finished_event
   =
   Step_effect.spawn
-    [%here]
     ?period
-    ~start:(fun (_ : O_data.t) handler ->
-      start handler (fun handler _ -> task handler ()) ())
+    handler
+    [%here]
+    ~start:(fun handler (_ : O_data.t) ->
+      start handler (fun handler _ -> task handler) ())
     ~input:(module O_data)
     ~output:(module I_data)
-    ~child_input:(fun ~parent:_ ->
-      Hardcaml_step_testbench_kernel.Before_and_after_edge.const ())
+    ~child_input:(fun ~parent:_ -> Before_and_after_edge.const ())
     ~include_child_output:(fun ~parent:_ ~child:_ -> ())
-    handler
 ;;
 
+let spawn' ?period handler task = ignore (spawn ?period handler task : _ finished_event)
+
 let wait_for (handler : Handler.t) (event : _ finished_event) =
-  let x = Step_effect.wait_for event ~output:() handler in
+  let x = Step_effect.wait_for handler event ~output:() in
   x.result
 ;;
 
@@ -76,24 +73,15 @@ let rec wait_for_with_timeout
     if timeout_in_cycles = 0
     then None
     else (
-      cycle handler ();
+      cycle handler;
       wait_for_with_timeout handler event ~timeout_in_cycles:(timeout_in_cycles - 1))
 ;;
 
 let forever (handler : Handler.t) f : never_returns =
   while true do
-    f handler ()
+    f handler
   done;
   assert false
-;;
-
-let run_monadic_computation
-  (type a)
-  h
-  (computation : (a, O_data.t, I_data.t) Step_monad.t)
-  : a
-  =
-  Step_effect.run_monadic_computation h computation
 ;;
 
 let create_component
@@ -106,7 +94,7 @@ let create_component
     ~period
     ~update_children_after_finish
     ~created_at
-    ~start:(fun testbench_arg handler ->
+    ~start:(fun handler testbench_arg ->
       start handler (fun h (_ : O_data.t) -> testbench h) testbench_arg)
     ~input:(module O_data)
     ~output:(module I_data)
@@ -148,20 +136,6 @@ module Evaluator = struct
     | None -> Running
     | Some x -> Finished x.result
   ;;
-end
-
-module As_monad = struct
-  type 'a t = Handler.t -> 'a
-
-  include Monad.Make (struct
-      type nonrec 'a t = 'a t
-
-      let return x _ = x
-      let bind (a : _ t) ~f : _ t = fun h -> f (a h) h
-      let map = `Define_using_bind
-    end)
-
-  let cycle ?num_cycles () h = cycle ?num_cycles h ()
 end
 
 module Expert = struct

@@ -1,2 +1,20 @@
-module Effectful = Hardcaml_step_testbench_effectful
-module Monadic = Hardcaml_step_testbench_monadic
+include struct
+  open Digital_components
+  module Step_effect = Step_effect
+  module Component = Component
+end
+
+module Before_and_after_edge = Hardcaml.Before_and_after_edge
+module Io_ports_for_imperative = Io_ports_for_imperative
+
+module Functional = struct
+  include Functional
+  module Cyclesim = Functional_cyclesim
+  module Event_driven_sim = Functional_event_driven_sim
+end
+
+module Imperative = struct
+  include Imperative
+  module Cyclesim = Imperative_cyclesim
+  module Event_driven_sim = Imperative_event_driven_sim
+end
