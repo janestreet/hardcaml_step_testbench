@@ -1,13 +1,10 @@
 open! Core
 open! Hardcaml
 open Digital_components
-open Hardcaml_step_testbench_kernel
 
 module type S = sig
   module I_data : Data.S with type t = unit
-
-  module O_data :
-    Data.S with type t = unit Hardcaml_step_testbench_kernel.Before_and_after_edge.t
+  module O_data : Data.S with type t = unit Before_and_after_edge.t
 
   module Handler : sig
     type t = (O_data.t, I_data.t) Step_effect.Handler.t
@@ -15,7 +12,7 @@ module type S = sig
 
   (** [cycle i_data ~num_cycles] waits for [num_cycles] cycles of the simulator to run.
       [cycle] raises if [num_cycles < 1]. *)
-  val cycle : Handler.t @ local -> ?num_cycles:int -> unit -> unit
+  val cycle : ?num_cycles:int -> Handler.t @ local -> unit
 
   val start
     :  Handler.t @ local
@@ -26,12 +23,17 @@ module type S = sig
   type ('a, 'i) finished_event =
     ('a, 'i) Step_effect.Component_finished.t Step_effect.Event.t
 
-  (** Launch a new task within the current simulation step. *)
-  val spawn
-    :  ?period:int (** defaults to the period of the parent at run time *)
+  type ('a, 'ret) spawn :=
+    ?period:int (** defaults to the period of the parent at run time *)
     -> Handler.t @ local
-    -> (Handler.t @ local -> unit -> 'a)
-    -> ('a, unit) finished_event
+    -> (Handler.t @ local -> 'a)
+    -> 'ret
+
+  (** Launch a new task within the current simulation step. *)
+  val spawn : ('a, ('a, unit) finished_event) spawn
+
+  (** Similar to [spawn], but ignored the finished_event return value *)
+  val spawn' : ('a, unit) spawn
 
   (** Wait for the given event to occur, and extract its return value. *)
   val wait_for : Handler.t @ local -> ('a, 'i) finished_event -> 'a
@@ -45,20 +47,7 @@ module type S = sig
     -> 'a option
 
   (** Runs the given step function forever. *)
-  val forever : Handler.t @ local -> (Handler.t @ local -> unit -> unit) -> never_returns
-
-  val run_monadic_computation
-    :  Handler.t @ local
-    -> ('a, O_data.t, I_data.t) Step_monad.t
-    -> 'a
-
-  module As_monad : sig
-    type 'a t = Handler.t @ local -> 'a
-
-    include Monad.S with type 'a t := 'a t
-
-    val cycle : ?num_cycles:int -> unit -> unit t
-  end
+  val forever : Handler.t @ local -> (Handler.t @ local -> unit) -> never_returns
 
   module Expert : sig
     val create_component

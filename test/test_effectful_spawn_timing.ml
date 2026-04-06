@@ -30,7 +30,7 @@ module%test [@tags "runtime5-only"] _ = struct
   ;;
 
   module Sim = Cyclesim.With_interface (I) (O)
-  module Step = Hardcaml_step_testbench_effectful.Functional.Cyclesim.Make (I) (O)
+  module Step = Hardcaml_step_testbench.Functional.Cyclesim.Make (I) (O)
 
   let setx2 handler _ =
     Step.delay handler { Step.input_hold with i2 = { x = Bits.vdd } } ~num_cycles:1

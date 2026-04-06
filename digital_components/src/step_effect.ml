@@ -12,13 +12,12 @@ let current_input (handler : ('i, 'o) Handler.t @ local) =
   let%tydi { aliased_many = result } =
     Step_core.Computation.Eff.perform
       handler
-      (Step_core.Computation.Effect_ops.Exec_monadic
-         Step_core.Computation.Monadic.Current_input)
+      Step_core.Computation.Effect_ops.Current_input
   in
   result
 ;;
 
-let next_step here o (handler : _ Handler.t @ local) =
+let next_step (handler : _ Handler.t @ local) here o =
   let%tydi { aliased_many = result } =
     Step_core.Computation.Eff.perform
       handler
@@ -27,38 +26,38 @@ let next_step here o (handler : _ Handler.t @ local) =
   result
 ;;
 
-let thunk f (handler : _ Handler.t @ local) = f () handler
+let thunk (handler : _ Handler.t @ local) f = f () handler
 
-let output_forever (type i o) output (handler : (i, o) Handler.t @ local) =
+let output_forever (type i o) (handler : (i, o) Handler.t @ local) output =
   while true do
-    ignore (next_step [%here] output handler : i)
+    ignore (next_step handler [%here] output : i)
   done
 ;;
 
-let wait_for (event : _ Event.t) ~output (handler : _ Handler.t @ local) =
+let wait_for (handler : _ Handler.t @ local) (event : _ Event.t) ~output =
   let result = ref None in
   while Option.is_none !result do
     match Event.value event with
     | Some a -> result := Some a
-    | None -> ignore (next_step [%here] output handler : 'i)
+    | None -> ignore (next_step handler [%here] output : 'i)
   done;
   Option.value_exn !result
 ;;
 
-let wait ~output ~until (handler : ('i, 'o) Handler.t @ local) =
+let wait (handler : ('i, 'o) Handler.t @ local) ~output ~until =
   let input = ref (current_input handler) in
   while not (until !input) do
-    input := next_step [%here] output handler
+    input := next_step handler [%here] output
   done
 ;;
 
-let delay output ~num_steps (handler : ('i, 'o) Handler.t @ local) =
+let delay (handler : ('i, 'o) Handler.t @ local) output ~num_steps =
   if num_steps < 0
   then
     raise_s
       [%message "[Step_effects.delay] got negative [num_steps]" ~_:(num_steps : int)];
   for _ = 1 to num_steps do
-    ignore (next_step [%here] output handler : 'i)
+    ignore (next_step handler [%here] output : 'i)
   done
 ;;
 
@@ -67,7 +66,7 @@ let create_component
   ?period
   ~created_at
   ~update_children_after_finish
-  ~(start : i -> (i, o) Handler.t @ local -> (a, o) Component_finished.t)
+  ~(start : (i, o) Handler.t @ local -> i -> (a, o) Component_finished.t)
   ~(input : i Data.t)
   ~(output : o Data.t)
   ()
@@ -86,9 +85,9 @@ let create_component
 
         let t =
           Runner.create ~output:Output.undefined ~start:(fun i ->
-            Step_core.Computation.Effectful
+            Step_core.Computation.T
               (fun handler ->
-                let x = start i handler in
+                let x = start handler i in
                 Event.set_value component_finished x;
                 x.output))
         ;;
@@ -110,13 +109,13 @@ let create_component
 let spawn
   ?(update_children_after_finish = false)
   ?period
+  (handler : ('i, 'o) Handler.t @ local)
   created_at
   ~start
   ~input
   ~output
   ~child_input
   ~include_child_output
-  (handler : ('i, 'o) Handler.t @ local)
   =
   let child, child_finished =
     create_component
@@ -128,23 +127,11 @@ let spawn
       ~output
       ()
   in
-  let monadic_spawn =
-    Step_core.Computation.Monadic.Spawn
-      { child; child_finished; child_input; include_child_output }
-  in
   let%tydi { aliased_many = () } =
     Step_core.Computation.Eff.perform
       handler
-      (Step_core.Computation.Effect_ops.Exec_monadic monadic_spawn)
+      (Step_core.Computation.Effect_ops.Spawn
+         { child; child_finished; child_input; include_child_output })
   in
   child_finished
-;;
-
-let run_monadic_computation (handler : ('i, 'o) Handler.t @ local) computation =
-  let%tydi { aliased_many } =
-    Step_core.Computation.Eff.perform
-      handler
-      (Step_core.Computation.Effect_ops.Exec_monadic computation)
-  in
-  aliased_many
 ;;

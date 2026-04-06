@@ -7,10 +7,8 @@ module%test [@tags "runtime5-only"] _ = struct
      by the hardware model by inserting a word count within the upper 16 bits. The
      received packet is shown. *)
   let%expect_test "testbench" =
-    let module Effectful = Send_and_receive_testbench.Effectful in
-    let module Monadic = Send_and_receive_testbench.Monadic in
     let module Tb =
-      Hardcaml_step_testbench_effectful.Functional.Cyclesim.Make
+      Hardcaml_step_testbench.Functional.Cyclesim.Make
         (Send_and_receive_testbench.I)
         (Send_and_receive_testbench.O)
     in
@@ -19,11 +17,7 @@ module%test [@tags "runtime5-only"] _ = struct
         (Send_and_receive_testbench.I)
         (Send_and_receive_testbench.O)
     in
-    let testbenches =
-      [ (fun h o -> Effectful.testbench o h)
-      ; (fun h o -> Tb.run_monadic_computation h (Monadic.testbench o))
-      ]
-    in
+    let testbenches = [ (fun h o -> Send_and_receive_testbench.testbench o h) ] in
     List.iter testbenches ~f:(fun testbench ->
       let simulator = Simulator.create Send_and_receive_testbench.make_circuit in
       let recv_packet = Tb.run_until_finished () ~simulator ~testbench in
@@ -60,9 +54,7 @@ module%test [@tags "runtime5-only"] _ = struct
       include Hardcaml.Interface.Make (T)
     end
     in
-    let module Tb =
-      Hardcaml_step_testbench_effectful.Functional.Cyclesim.Make (Data) (Data_o)
-    in
+    let module Tb = Hardcaml_step_testbench.Functional.Cyclesim.Make (Data) (Data_o) in
     let module Simulator = Cyclesim.With_interface (Data) (Data_o) in
     let simulator = Simulator.create Fn.id in
     let rec get_outputs h count data =
@@ -135,9 +127,7 @@ module%test [@tags "runtime5-only"] _ = struct
 
   let%expect_test "[run] - returns result as option, but only if ready" =
     let module Tb =
-      Hardcaml_step_testbench_effectful.Functional.Cyclesim.Make
-        (Interface.Empty)
-        (Interface.Empty)
+      Hardcaml_step_testbench.Functional.Cyclesim.Make (Interface.Empty) (Interface.Empty)
     in
     let module Simulator = Cyclesim.With_interface (Interface.Empty) (Interface.Empty) in
     let simulator = Simulator.create Fn.id in
@@ -208,7 +198,7 @@ module%test [@tags "runtime5-only"] _ = struct
       type 'a t = { q : 'a [@bits 8] } [@@deriving hardcaml]
     end
     in
-    let module Tb = Hardcaml_step_testbench_effectful.Functional.Cyclesim.Make (I) (O) in
+    let module Tb = Hardcaml_step_testbench.Functional.Cyclesim.Make (I) (O) in
     let module Simulator = Cyclesim.With_interface (I) (O) in
     let test normal_spawn =
       let simulator = Simulator.create (fun (x : _ I.t) -> { O.q = x.d }) in
@@ -267,7 +257,7 @@ module%test [@tags "runtime5-only"] _ = struct
 
   let%expect_test "Timeout works as expected" =
     let module Tb =
-      Hardcaml_step_testbench_effectful.Functional.Cyclesim.Make
+      Hardcaml_step_testbench.Functional.Cyclesim.Make
         (Send_and_receive_testbench.I)
         (Send_and_receive_testbench.O)
     in

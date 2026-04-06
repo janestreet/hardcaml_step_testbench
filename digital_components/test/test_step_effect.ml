@@ -5,11 +5,10 @@ module Data = Digital_components.Data
 include struct
   open Digital_components
   module Component = Component
-  module Step_monad = Step_monad
+  module Step_effect = Step_effect
 end
 
-open Step_monad
-open! Step_monad.Let_syntax
+open Step_effect
 include Component.Run_component_until_finished (Monad.Ident)
 
 let run_with_inputs (t : _ Component.t) inputs =
@@ -23,9 +22,9 @@ let create_component ?(update_children_after_finish = false) created_at start =
   create_component
     ~update_children_after_finish
     ~created_at
-    ~start:(fun i ->
-      let%bind () = start i in
-      return { Component_finished.output = (); result = () })
+    ~start:(fun h i ->
+      start h i;
+      { Component_finished.output = (); result = () })
     ~input:(module Data.Unit)
     ~output:(module Data.Unit)
 ;;
@@ -41,75 +40,61 @@ let test start =
   print_s [%sexp (component : (_, _) Component.t)] ~hide_positions:true
 ;;
 
-let spawn start =
-  let%bind child_finished =
+let spawn start h =
+  let child_finished =
     spawn
+      h
       [%here]
-      ~start:(fun () ->
-        let%bind result = start () in
-        return { Component_finished.output = (); result })
+      ~start:(fun h () ->
+        let result = start h () in
+        { Component_finished.output = (); result })
       ~input:(module Data.Unit)
       ~output:(module Data.Unit)
       ~child_input:(fun ~parent:_ -> ())
       ~include_child_output:(fun ~parent:_ ~child:_ -> ())
   in
-  return child_finished
+  child_finished
 ;;
 
-let wait_for event = wait_for event ~output:()
+let wait_for event h = wait_for h event ~output:()
 
-let%expect_test "[return]" =
-  test (fun () -> return ());
+let%expect_test ("[no-op]" [@tags "runtime5-only"]) =
+  test (fun _ () -> ());
   [%expect
     {|
     (step_number 0)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ())))
     |}]
 ;;
 
-let%expect_test "[bind]" =
-  test (fun () ->
-    let%bind () = return () in
-    return ());
-  [%expect
-    {|
-    (step_number 0)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
-     ((state (Finished ()))
-      (children ())
-      (output   ())))
-    |}]
-;;
-
-let%expect_test "[next_step]" =
-  test (fun () -> next_step [%here] ());
+let%expect_test ("[next_step]" [@tags "runtime5-only"]) =
+  test (fun h () -> next_step h [%here] ());
   [%expect
     {|
     (step_number 0)
     (step_number 1)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ())))
     |}]
 ;;
 
-let%expect_test "[spawn] + [wait]" =
-  test (fun () ->
-    let%bind child_finished = spawn (fun () -> return ()) in
-    let%bind _ = wait_for child_finished in
-    return ());
+let%expect_test ("[spawn] + [wait]" [@tags "runtime5-only"]) =
+  test (fun h () ->
+    let child_finished = spawn (fun _ () -> ()) h in
+    ignore (wait_for child_finished h : (unit, unit) Component_finished.t));
   [%expect
     {|
     (step_number 0)
     (step_number 1)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
         ((state (Finished ()))
          (children ())
          (output   ())))))
@@ -117,20 +102,19 @@ let%expect_test "[spawn] + [wait]" =
     |}]
 ;;
 
-let%expect_test "[spawn] + [wait] with child taking a step" =
-  test (fun () ->
-    let%bind child_finished = spawn (fun () -> next_step [%here] ()) in
-    let%bind _ = wait_for child_finished in
-    return ());
+let%expect_test ("[spawn] + [wait] with child taking a step" [@tags "runtime5-only"]) =
+  test (fun h () ->
+    let child_finished = spawn (fun h () -> next_step h [%here] ()) h in
+    ignore (wait_for child_finished h : (unit, unit) Component_finished.t));
   [%expect
     {|
     (step_number 0)
     (step_number 1)
     (step_number 2)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
         ((state (Finished ()))
          (children ())
          (output   ())))))
@@ -138,18 +122,19 @@ let%expect_test "[spawn] + [wait] with child taking a step" =
     |}]
 ;;
 
-let%expect_test "[for_]" =
+let%expect_test ("[for_]" [@tags "runtime5-only"]) =
   let test lo hi =
-    test (fun () ->
-      for_ lo hi (fun i ->
+    test (fun h () ->
+      for i = lo to hi do
         print_s [%message (i : int)];
-        next_step [%here] ()))
+        next_step h [%here] ()
+      done)
   in
   test 0 (-1);
   [%expect
     {|
     (step_number 0)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ())))
@@ -160,7 +145,7 @@ let%expect_test "[for_]" =
     (step_number 0)
     (i 0)
     (step_number 1)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ())))
@@ -173,7 +158,7 @@ let%expect_test "[for_]" =
     (step_number 1)
     (i 1)
     (step_number 2)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ())))
@@ -188,27 +173,30 @@ let%expect_test "[for_]" =
     (step_number 2)
     (i 2)
     (step_number 3)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ())))
     |}]
 ;;
 
-let%expect_test "parallel components" =
+let%expect_test ("parallel components" [@tags "runtime5-only"]) =
   for num_tasks = 1 to 4 do
     print_s [%message (num_tasks : int)];
-    test (fun () ->
-      let%bind children =
-        all
-          (List.init num_tasks ~f:(fun task_index ->
-             spawn (fun () ->
-               for_ 0 2 (fun step_index ->
-                 Stdio.printf "%d %d\n" step_index task_index;
-                 next_step [%here] ()))))
+    test (fun (h @ local) () ->
+      let children =
+        List.map (List.range 0 num_tasks) ~f:(fun task_index ->
+          spawn
+            (fun h () ->
+              for step_index = 0 to 2 do
+                Stdio.printf "%d %d\n" step_index task_index;
+                next_step h [%here] ()
+              done)
+            h)
       in
-      let%bind _ = all (List.map children ~f:wait_for) in
-      return ())
+      List.iter children ~f:(fun ev ->
+        ignore (wait_for ev h : (unit, unit) Component_finished.t))
+      [@nontail])
   done;
   [%expect
     {|
@@ -221,10 +209,10 @@ let%expect_test "parallel components" =
     2 0
     (step_number 3)
     (step_number 4)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
         ((state (Finished ()))
          (children ())
          (output   ())))))
@@ -241,14 +229,14 @@ let%expect_test "parallel components" =
     2 0
     (step_number 3)
     (step_number 4)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children (
-        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))))
@@ -268,18 +256,18 @@ let%expect_test "parallel components" =
     2 0
     (step_number 3)
     (step_number 4)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children (
-        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))))
@@ -302,22 +290,22 @@ let%expect_test "parallel components" =
     2 0
     (step_number 3)
     (step_number 4)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children (
-        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))
-        (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
          ((state (Finished ()))
           (children ())
           (output   ())))))
@@ -325,8 +313,8 @@ let%expect_test "parallel components" =
     |}]
 ;;
 
-let%expect_test "[delay]" =
-  test (fun () -> delay () ~num_steps:5);
+let%expect_test ("[delay]" [@tags "runtime5-only"]) =
+  test (fun h () -> delay h () ~num_steps:5);
   [%expect
     {|
     (step_number 0)
@@ -335,58 +323,25 @@ let%expect_test "[delay]" =
     (step_number 3)
     (step_number 4)
     (step_number 5)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ())
       (output   ())))
     |}]
 ;;
 
-let%expect_test "[repeat]" =
-  for count = 0 to 3 do
-    test (fun () -> repeat ~count (fun () -> next_step [%here] ()))
-  done;
-  [%expect
-    {|
-    (step_number 0)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
-     ((state (Finished ()))
-      (children ())
-      (output   ())))
-    (step_number 0)
-    (step_number 1)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
-     ((state (Finished ()))
-      (children ())
-      (output   ())))
-    (step_number 0)
-    (step_number 1)
-    (step_number 2)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
-     ((state (Finished ()))
-      (children ())
-      (output   ())))
-    (step_number 0)
-    (step_number 1)
-    (step_number 2)
-    (step_number 3)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
-     ((state (Finished ()))
-      (children ())
-      (output   ())))
-    |}]
-;;
-
-let%expect_test "[spawn] + [for_]" =
-  test (fun () ->
-    let%bind child_finished =
-      spawn (fun () ->
-        for_ 0 3 (fun i ->
-          print_s [%message (i : int)];
-          next_step [%here] ()))
+let%expect_test ("[spawn] + [for_]" [@tags "runtime5-only"]) =
+  test (fun h () ->
+    let child_finished =
+      spawn
+        (fun h () ->
+          for i = 0 to 3 do
+            print_s [%message (i : int)];
+            next_step h [%here] ()
+          done)
+        h
     in
-    let%bind _ = wait_for child_finished in
-    return ());
+    ignore (wait_for child_finished h : (unit, unit) Component_finished.t));
   [%expect
     {|
     (step_number 0)
@@ -399,10 +354,10 @@ let%expect_test "[spawn] + [for_]" =
     (i 3)
     (step_number 4)
     (step_number 5)
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
         ((state (Finished ()))
          (children ())
          (output   ())))))
@@ -410,19 +365,19 @@ let%expect_test "[spawn] + [for_]" =
     |}]
 ;;
 
-let%expect_test "output counter" =
+let%expect_test ("output counter" [@tags "runtime5-only"]) =
   let component, _ =
-    Step_monad.create_component
+    Step_effect.create_component
       ~update_children_after_finish:false
       ~created_at:[%here]
       ~input:(module Data.Unit)
       ~output:(module Data.Int)
-      ~start:(fun () ->
+      ~start:(fun h () ->
         let rec loop i =
-          let%bind () = next_step [%here] i in
+          next_step h [%here] i;
           loop (i + 1)
         in
-        loop 0)
+        loop 0 [@nontail])
       ()
   in
   run_with_inputs component (List.init 5 ~f:(fun _ -> ()));
@@ -436,19 +391,19 @@ let%expect_test "output counter" =
     |}]
 ;;
 
-let%expect_test "add1" =
+let%expect_test ("add1" [@tags "runtime5-only"]) =
   let component, _ =
-    Step_monad.create_component
+    Step_effect.create_component
       ~update_children_after_finish:false
       ~created_at:[%here]
       ~input:(module Data.Int)
       ~output:(module Data.Int)
-      ~start:
-        (let rec loop i =
-           let%bind i = next_step [%here] (i + 1) in
-           loop i
-         in
-         loop)
+      ~start:(fun h (i : int) ->
+        let rec loop i =
+          let i = next_step h [%here] (i + 1) in
+          loop i
+        in
+        loop i [@nontail])
       ()
   in
   run_with_inputs component (List.init 5 ~f:Fn.id);
@@ -462,22 +417,22 @@ let%expect_test "add1" =
     |}]
 ;;
 
-let%expect_test "child returning a value" =
-  test (fun () ->
-    let%bind child_finished =
-      Step_monad.spawn
+let%expect_test ("child returning a value" [@tags "runtime5-only"]) =
+  test (fun h () ->
+    let child_finished =
+      Step_effect.spawn
+        h
         [%here]
         ~input:(module Data.Unit)
         ~output:(module Data.Int)
         ~child_input:(fun ~parent:_ -> ())
         ~include_child_output:(fun ~parent:_ ~child:_ -> ())
-        ~start:(fun () ->
-          let%bind () = delay 13 ~num_steps:3 in
-          return { Component_finished.output = 17; result = "foo" })
+        ~start:(fun h () ->
+          delay h 13 ~num_steps:3;
+          { Component_finished.output = 17; result = "foo" })
     in
-    let%bind child_finished = wait_for child_finished in
-    print_s [%message (child_finished : (string, int) Component_finished.t)];
-    return ());
+    let child_finished = wait_for child_finished h in
+    print_s [%message (child_finished : (string, int) Component_finished.t)]);
   [%expect
     {|
     (step_number 0)
@@ -488,29 +443,32 @@ let%expect_test "child returning a value" =
     (child_finished (
       (output 17)
       (result foo)))
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
         ((state (Finished 17)) (children ()) (output 17)))))
       (output ())))
     |}]
 ;;
 
-let%expect_test "parent runs before child" =
-  test (fun () ->
-    let%bind _ =
-      spawn (fun () ->
-        let rec loop () =
-          print_s [%message "child"];
-          let%bind () = next_step [%here] () in
-          loop ()
-        in
-        loop ())
-    in
-    for_ 1 3 (fun _ ->
+let%expect_test ("parent runs before child" [@tags "runtime5-only"]) =
+  test (fun h () ->
+    ignore
+      (spawn
+         (fun h () ->
+           let rec loop () =
+             print_s [%message "child"];
+             next_step h [%here] ();
+             loop ()
+           in
+           loop () [@nontail])
+         h
+       : _ Component_finished.t Event.t);
+    for _ = 1 to 3 do
       print_s [%message "parent"];
-      next_step [%here] ()));
+      next_step h [%here] ()
+    done);
   [%expect
     {|
     (step_number 0)
@@ -524,45 +482,47 @@ let%expect_test "parent runs before child" =
     child
     (step_number 3)
     child
-    (lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+    (lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
      ((state (Finished ()))
       (children ((
-        lib/hardcaml/digital_components/test/test_step_monad.ml:LINE:COL
+        lib/hardcaml/digital_components/test/test_step_effect.ml:LINE:COL
         ((state (
            Running
            (num_steps_to_stall 0)
-           (continuation (
-             Monad_bind <fun> (Monad_bind <fun> (Monad_bind <fun> Empty))))))
+           (continuation (Effect_continuation (<opaque> Empty)))))
          (children ())
          (output   ())))))
       (output ())))
     |}]
 ;;
 
-let%expect_test "finished child doesn't contribute to output" =
+let%expect_test ("finished child doesn't contribute to output" [@tags "runtime5-only"]) =
   let component, component_finished =
-    Step_monad.create_component
+    Step_effect.create_component
       ~update_children_after_finish:false
       ~created_at:[%here]
       ~input:(module Data.Unit)
       ~output:(module Data.String)
-      ~start:(fun _ ->
-        let%bind child_finished =
-          Step_monad.spawn
+      ~start:(fun h _ ->
+        let child_finished =
+          Step_effect.spawn
+            h
             [%here]
-            ~start:(fun () ->
-              let%bind () = next_step [%here] "child" in
-              return { Component_finished.output = "child_finished"; result = () })
+            ~start:(fun h () ->
+              next_step h [%here] "child";
+              { Component_finished.output = "child_finished"; result = () })
             ~input:(module Data.Unit)
             ~output:(module Data.String)
             ~child_input:(fun ~parent:() -> ())
             ~include_child_output:(fun ~parent ~child ->
               String.concat [ parent; " + "; child ])
         in
-        let%bind () = next_step [%here] "before" in
-        let%bind _ = Step_monad.wait_for child_finished ~output:"waiting" in
-        let%bind () = Step_monad.delay ~num_steps:3 "delay" in
-        return { Component_finished.output = "after"; result = () })
+        next_step h [%here] "before";
+        ignore
+          (Step_effect.wait_for h child_finished ~output:"waiting"
+           : _ Component_finished.t);
+        Step_effect.delay h "delay" ~num_steps:3;
+        { Component_finished.output = "after"; result = () })
       ()
   in
   run_component_until_finished
@@ -589,13 +549,15 @@ let%expect_test "finished child doesn't contribute to output" =
     |}]
 ;;
 
-let%expect_test "grand-child does not run when child terminates" =
-  let spawn here f =
-    Step_monad.spawn
+let%expect_test ("grand-child does not run when child terminates" [@tags "runtime5-only"])
+  =
+  let spawn h here f =
+    Step_effect.spawn
+      h
       here
-      ~start:(fun () ->
-        let%bind result = f () in
-        return { Component_finished.output = (); result })
+      ~start:(fun h () ->
+        let result = f h in
+        { Component_finished.output = (); result })
       ~input:(module Data.Unit)
       ~output:(module Data.Unit)
       ~child_input:(fun ~parent:() -> ())
@@ -603,35 +565,34 @@ let%expect_test "grand-child does not run when child terminates" =
   in
   let test ~update_children_after_finish ~number_of_cycles_in_parent =
     let component, _component_finished =
-      Step_monad.create_component
+      Step_effect.create_component
         ~update_children_after_finish
         ~created_at:[%here]
         ~input:(module Data.Unit)
         ~output:(module Data.Unit)
-        ~start:(fun () ->
-          let%bind _child =
-            spawn [%here] (fun () ->
-              let%bind _grandchild =
-                spawn [%here] (fun () ->
-                  let rec loop () =
-                    Stdio.printf "Printing from grandchild\n";
-                    let%bind () = next_step [%here] () in
-                    loop ()
-                  in
-                  loop ())
-              in
-              let%bind () = next_step [%here] () in
-              return ())
-          in
+        ~start:(fun h () ->
+          ignore
+            (spawn h [%here] (fun h ->
+               ignore
+                 (spawn h [%here] (fun h ->
+                    let rec loop () =
+                      Stdio.printf "Printing from grandchild\n";
+                      next_step h [%here] ();
+                      loop ()
+                    in
+                    loop () [@nontail])
+                  : _ Component_finished.t Event.t);
+               next_step h [%here] ())
+             : _ Component_finished.t Event.t);
           let rec loop i =
             if i = number_of_cycles_in_parent
-            then return ()
+            then ()
             else (
-              let%bind () = next_step [%here] () in
+              next_step h [%here] ();
               loop (i + 1))
           in
-          let%bind () = loop 0 in
-          return { Component_finished.output = (); result = () })
+          loop 0;
+          { Component_finished.output = (); result = () })
         ()
     in
     ignore

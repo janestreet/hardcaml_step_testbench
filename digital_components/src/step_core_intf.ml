@@ -5,41 +5,26 @@ open Core
 
 module type Step_core = sig
   module Computation : sig
-    module rec Monadic : sig
-      type ('a, 'i, 'o) t =
-        | Bind : ('a, 'i, 'o) t * ('a -> ('b, 'i, 'o) t) -> ('b, 'i, 'o) t
-        | Current_input : ('i, 'i, 'o) t
-        | Next_period : Source_code_position.t * 'o -> ('i, 'i, 'o) t
-        | Return : 'a -> ('a, _, _) t
-        | Thunk : (unit -> ('a, 'i, 'o) t) -> ('a, 'i, 'o) t
+    module Effect_ops : sig
+      type ('a, 'i, 'o, 'effect) t =
+        | Current_input : ('i aliased_many, 'i, 'o, 'effect) t
+        | Next_period :
+            Source_code_position.t * 'o
+            -> ('i aliased_many, 'i, 'o, 'effect) t
         | Spawn :
             { child : ('i_c, 'o_c) Component.t
             ; child_finished : (_, 'o_c) Component_finished.t Event.t
             ; child_input : parent:'i -> 'i_c
             ; include_child_output : parent:'o -> child:'o_c -> 'o
             }
-            -> (unit, 'i, 'o) t
-        | Exec_effectful : (('i, 'o) Eff.Handler.t @ local -> 'a) -> ('a, 'i, 'o) t
-      [@@deriving sexp_of]
-
-      include Monad.S3 with type ('a, 'i, 'o) t := ('a, 'i, 'o) t
+            -> (unit aliased_many, 'i, 'o, 'effect) t
     end
 
-    and Effect_ops : sig
-      type ('a, 'i, 'o, 'effect) t =
-        | Next_period :
-            Source_code_position.t * 'o
-            -> ('i aliased_many, 'i, 'o, 'effect) t
-        | Exec_monadic : ('a, 'i, 'o) Monadic.t -> ('a aliased_many, 'i, 'o, 'effect) t
-    end
+    module Eff :
+      Handled_effect.S2
+      with type ('a, 'i, 'o, 'eff) ops := ('a, 'i, 'o, 'eff) Effect_ops.t
 
-    and Eff :
-      (Handled_effect.S2
-      with type ('a, 'i, 'o, 'eff) ops := ('a, 'i, 'o, 'eff) Effect_ops.t)
-
-    type ('a, 'i, 'o) t =
-      | Monadic of ('a, 'i, 'o) Monadic.t
-      | Effectful of (('i, 'o) Eff.Handler.t @ local -> 'a)
+    type ('a, 'i, 'o) t = T of (('i, 'o) Eff.Handler.t @ local -> 'a) [@@unboxed]
   end
 
   (* A [Runner.t] is a stateful value that can run a [Computation.t] one step at a time,
