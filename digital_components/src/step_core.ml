@@ -177,7 +177,7 @@ module Runner = struct
       | C.Empty -> { output = a.aliased_many; next_state = Finished a.aliased_many }
       | C.Effect_continuation (computation_to_resume, continuation) ->
         handle_eff
-          (Handled_effect.continue (Unique.Once.get_exn computation_to_resume) a [])
+          (Handled_effect.continue (Unique.Once.take_exn computation_to_resume) a [])
           continuation
     in
     let[@inline always] maybe_stall ~num_steps_to_stall ~f ~stall =

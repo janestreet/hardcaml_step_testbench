@@ -55,7 +55,7 @@ module%test [@tags "runtime5-only"] _ = struct
 
   let%expect_test "" =
     let simulator = Sim.create create in
-    let waves, simulator = Waveform.create simulator in
+    let waves, simulator = Cyclesim.Waveform.create simulator in
     Step.run_until_finished () ~simulator ~testbench;
     Waveform.print waves;
     [%expect

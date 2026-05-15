@@ -69,7 +69,7 @@ module%test [@tags "runtime5-only"] _ = struct
     let sim =
       Step.wrap_never_returns ~when_to_evaluate_testbenches ~testbenches:[ testbench ] sim
     in
-    let waves, sim = Waveform.create sim in
+    let waves, sim = Cyclesim.Waveform.create sim in
     printf "On first call to Cyclesim.cycle:\n";
     inputs.step <--. 1;
     Cyclesim.cycle sim;

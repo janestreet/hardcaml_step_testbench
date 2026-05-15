@@ -41,7 +41,7 @@ module Functional = struct
 
   let run_test testbench ~count ~print_waves =
     let simulator = sim () in
-    let waves, simulator = Waveform.create simulator in
+    let waves, simulator = Cyclesim.Waveform.create simulator in
     let f () = Step.run_until_finished () ~show_steps:true ~simulator ~testbench in
     run f ~count;
     if print_waves then Waveform.print waves
@@ -76,7 +76,7 @@ module Imperative = struct
 
   let run_test testbench ~count ~print_waves =
     let simulator = sim () in
-    let waves, simulator = Waveform.create simulator in
+    let waves, simulator = Cyclesim.Waveform.create simulator in
     let inputs = Cyclesim.inputs simulator in
     let outputs = Cyclesim.outputs ~clock_edge:Before simulator in
     let f () =
