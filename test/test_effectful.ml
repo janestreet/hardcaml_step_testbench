@@ -202,7 +202,7 @@ module%test [@tags "runtime5-only"] _ = struct
     let module Simulator = Cyclesim.With_interface (I) (O) in
     let test normal_spawn =
       let simulator = Simulator.create (fun (x : _ I.t) -> { O.q = x.d }) in
-      let waves, simulator = Waveform.create simulator in
+      let waves, simulator = Cyclesim.Waveform.create simulator in
       let set_d _ h =
         Tb.delay h { d = Bits.ones 8 } ~num_cycles:1;
         Tb.cycle h { d = Bits.zero 8 }

@@ -58,7 +58,7 @@ module%test [@tags "runtime5-only"] _ = struct
 
   let%expect_test "" =
     let simulator = Sim.create create in
-    let waves, simulator = Waveform.create simulator in
+    let waves, simulator = Cyclesim.Waveform.create simulator in
     let result =
       Step.run_until_finished () ~simulator ~testbench:(fun handler ->
         testbench (Cyclesim.inputs simulator) (Cyclesim.outputs simulator) handler)
@@ -113,7 +113,7 @@ module%test [@tags "runtime5-only"] _ = struct
 
     let%expect_test "Spans a task from imperative and run it to completion" =
       let simulator = Sim.create create in
-      let waves, simulator = Waveform.create simulator in
+      let waves, simulator = Cyclesim.Waveform.create simulator in
       Step.run_until_finished () ~simulator ~testbench:(fun h -> testbench simulator h);
       Waveform.print ~wave_width:2 waves;
       [%expect
@@ -153,7 +153,7 @@ module%test [@tags "runtime5-only"] _ = struct
 
     let%expect_test "Executes a forever task from imperative" =
       let simulator = Sim.create create in
-      let waves, simulator = Waveform.create simulator in
+      let waves, simulator = Cyclesim.Waveform.create simulator in
       (match
          Step.run_with_timeout ~timeout:5 () ~simulator ~testbench:(fun h ->
            mk_testbench simulator h)

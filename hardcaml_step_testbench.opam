@@ -16,13 +16,12 @@ depends: [
   "handled_effect"
   "hardcaml"
   "hardcaml_event_driven_sim"
-  "hardcaml_waveterm"
   "ppx_jane"
   "stdio"
   "unique"
   "dune"                      {>= "3.17.0"}
 ]
-available: arch != "arm32" & arch != "x86_32"
+available: arch != "x86_32"
 synopsis: "Hardcaml Testbench Monad"
 description: "
 A monad for interacting with Hardcaml.Cyclesim based simulations.
