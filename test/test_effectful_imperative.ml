@@ -2,7 +2,7 @@ open! Core
 open Hardcaml
 open Hardcaml_waveterm
 
-module%test [@tags "runtime5-only"] _ = struct
+module%test _ = struct
   module I = struct
     type 'a t =
       { clock : 'a

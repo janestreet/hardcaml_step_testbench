@@ -3,7 +3,7 @@ open Hardcaml
 open Hardcaml_waveterm
 open Bits
 
-module%test [@tags "runtime5-only"] _ = struct
+module%test _ = struct
   module Dut = struct
     open Signal
 

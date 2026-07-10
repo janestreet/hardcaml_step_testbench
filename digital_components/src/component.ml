@@ -239,7 +239,8 @@ module Flip_flop_with_load_enable = struct
       }
     [@@deriving compare ~localize, sexp_of]
 
-    let equal = [%compare.equal: t]
+    let%template[@mode m = local] equal = ([%compare.equal: t] [@mode.explicit m])
+    let%template equal = [%eta2 equal [@mode local]]
     let undefined = { input = Data.Bool.undefined; load_enable = Data.Bool.undefined }
   end
 
@@ -283,7 +284,8 @@ module Flip_flop_with_load_enable_and_reset = struct
       }
     [@@deriving compare ~localize, sexp_of]
 
-    let equal = [%compare.equal: t]
+    let%template[@mode m = local] equal = ([%compare.equal: t] [@mode.explicit m])
+    let%template equal = [%eta2 equal [@mode local]]
 
     let undefined =
       { input = Data.Bool.undefined

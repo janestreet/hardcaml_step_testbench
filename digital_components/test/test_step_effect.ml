@@ -58,7 +58,7 @@ let spawn start h =
 
 let wait_for event h = wait_for h event ~output:()
 
-let%expect_test ("[no-op]" [@tags "runtime5-only"]) =
+let%expect_test "[no-op]" =
   test (fun _ () -> ());
   [%expect
     {|
@@ -70,7 +70,7 @@ let%expect_test ("[no-op]" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("[next_step]" [@tags "runtime5-only"]) =
+let%expect_test "[next_step]" =
   test (fun h () -> next_step h [%here] ());
   [%expect
     {|
@@ -83,7 +83,7 @@ let%expect_test ("[next_step]" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("[spawn] + [wait]" [@tags "runtime5-only"]) =
+let%expect_test "[spawn] + [wait]" =
   test (fun h () ->
     let child_finished = spawn (fun _ () -> ()) h in
     ignore (wait_for child_finished h : (unit, unit) Component_finished.t));
@@ -102,7 +102,7 @@ let%expect_test ("[spawn] + [wait]" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("[spawn] + [wait] with child taking a step" [@tags "runtime5-only"]) =
+let%expect_test "[spawn] + [wait] with child taking a step" =
   test (fun h () ->
     let child_finished = spawn (fun h () -> next_step h [%here] ()) h in
     ignore (wait_for child_finished h : (unit, unit) Component_finished.t));
@@ -122,7 +122,7 @@ let%expect_test ("[spawn] + [wait] with child taking a step" [@tags "runtime5-on
     |}]
 ;;
 
-let%expect_test ("[for_]" [@tags "runtime5-only"]) =
+let%expect_test "[for_]" =
   let test lo hi =
     test (fun h () ->
       for i = lo to hi do
@@ -180,7 +180,7 @@ let%expect_test ("[for_]" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("parallel components" [@tags "runtime5-only"]) =
+let%expect_test "parallel components" =
   for num_tasks = 1 to 4 do
     print_s [%message (num_tasks : int)];
     test (fun h () ->
@@ -313,7 +313,7 @@ let%expect_test ("parallel components" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("[delay]" [@tags "runtime5-only"]) =
+let%expect_test "[delay]" =
   test (fun h () -> delay h () ~num_steps:5);
   [%expect
     {|
@@ -330,7 +330,7 @@ let%expect_test ("[delay]" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("[spawn] + [for_]" [@tags "runtime5-only"]) =
+let%expect_test "[spawn] + [for_]" =
   test (fun h () ->
     let child_finished =
       spawn
@@ -365,7 +365,7 @@ let%expect_test ("[spawn] + [for_]" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("output counter" [@tags "runtime5-only"]) =
+let%expect_test "output counter" =
   let component, _ =
     Step_effect.create_component
       ~update_children_after_finish:false
@@ -391,7 +391,7 @@ let%expect_test ("output counter" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("add1" [@tags "runtime5-only"]) =
+let%expect_test "add1" =
   let component, _ =
     Step_effect.create_component
       ~update_children_after_finish:false
@@ -417,7 +417,7 @@ let%expect_test ("add1" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("child returning a value" [@tags "runtime5-only"]) =
+let%expect_test "child returning a value" =
   test (fun h () ->
     let child_finished =
       Step_effect.spawn
@@ -452,7 +452,7 @@ let%expect_test ("child returning a value" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("parent runs before child" [@tags "runtime5-only"]) =
+let%expect_test "parent runs before child" =
   test (fun h () ->
     ignore
       (spawn
@@ -496,7 +496,7 @@ let%expect_test ("parent runs before child" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("finished child doesn't contribute to output" [@tags "runtime5-only"]) =
+let%expect_test "finished child doesn't contribute to output" =
   let component, component_finished =
     Step_effect.create_component
       ~update_children_after_finish:false
@@ -549,8 +549,7 @@ let%expect_test ("finished child doesn't contribute to output" [@tags "runtime5-
     |}]
 ;;
 
-let%expect_test ("grand-child does not run when child terminates" [@tags "runtime5-only"])
-  =
+let%expect_test "grand-child does not run when child terminates" =
   let spawn h here f =
     Step_effect.spawn
       h
