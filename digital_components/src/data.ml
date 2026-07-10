@@ -4,36 +4,32 @@ include Data_intf
 type 'd t = (module S with type t = 'd)
 
 module Bool = struct
-  type t = bool [@@deriving compare ~localize, sexp_of]
+  type t = bool [@@deriving compare ~localize, equal ~localize, sexp_of]
 
-  let equal = [%compare.equal: t]
   let undefined = false
 end
 
 module Int = struct
-  type t = int [@@deriving compare ~localize, sexp_of]
+  type t = int [@@deriving compare ~localize, equal ~localize, sexp_of]
 
-  let equal = [%compare.equal: t]
   let undefined = 0
 end
 
 module String = struct
-  type t = string [@@deriving compare ~localize, sexp_of]
+  type t = string [@@deriving compare ~localize, equal ~localize, sexp_of]
 
-  let equal = [%compare.equal: t]
   let undefined = ""
 end
 
 module Unit = struct
-  type t = unit [@@deriving compare ~localize, sexp_of]
+  type t = unit [@@deriving compare ~localize, equal ~localize, sexp_of]
 
-  let equal = [%compare.equal: t]
   let undefined = ()
 end
 
-module Pair (D1 : S) (D2 : S) = struct
-  type t = D1.t * D2.t [@@deriving sexp_of]
+module%template [@mode m = (local, global)] Pair (D1 : S [@mode m]) (D2 : S [@mode m]) =
+struct
+  type t = D1.t * D2.t [@@deriving sexp_of, (equal [@mode.explicit m])]
 
-  let equal (a1, a2) (b1, b2) = D1.equal a1 b1 && D2.equal a2 b2
   let undefined = D1.undefined, D2.undefined
 end

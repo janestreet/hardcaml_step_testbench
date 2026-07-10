@@ -1,5 +1,3 @@
-[@@@alert "-experimental_runtime5"]
-
 open Core
 include Step_core_intf
 

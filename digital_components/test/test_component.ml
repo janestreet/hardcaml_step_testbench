@@ -14,7 +14,7 @@ let show (t : _ Component.t) =
   print_s [%sexp (t : (_, _) Component.t)] ~hide_positions:true
 ;;
 
-let%expect_test ("[and_], [or_]" [@tags "runtime5-only"]) =
+let%expect_test "[and_], [or_]" =
   let test t =
     List.iter Bool.all ~f:(fun b1 ->
       List.iter Bool.all ~f:(fun b2 ->
@@ -40,7 +40,7 @@ let%expect_test ("[and_], [or_]" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("[map_input], [map_output]" [@tags "runtime5-only"]) =
+let%expect_test "[map_input], [map_output]" =
   let test t =
     List.iter Bool.all ~f:(fun input ->
       print_s [%message "" (input : bool) ~output:(output t input : bool)])
@@ -63,7 +63,7 @@ let%expect_test ("[map_input], [map_output]" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("[flip_flop]" [@tags "runtime5-only"]) =
+let%expect_test "[flip_flop]" =
   let t = flip_flop () in
   let show_output t = print_s [%sexp (output t false : bool)] in
   show t;
@@ -85,7 +85,7 @@ let%expect_test ("[flip_flop]" [@tags "runtime5-only"]) =
   [%expect {| false |}]
 ;;
 
-let%expect_test ("[flip_flop_with_load_enable]" [@tags "runtime5-only"]) =
+let%expect_test "[flip_flop_with_load_enable]" =
   let t = Flip_flop_with_load_enable.create () in
   show t;
   [%expect
@@ -120,7 +120,7 @@ let%expect_test ("[flip_flop_with_load_enable]" [@tags "runtime5-only"]) =
     |}]
 ;;
 
-let%expect_test ("[flip_flop_with_load_enable_and_reset]" [@tags "runtime5-only"]) =
+let%expect_test "[flip_flop_with_load_enable_and_reset]" =
   let t = Flip_flop_with_load_enable_and_reset.create () in
   show t;
   [%expect
@@ -159,7 +159,7 @@ let%expect_test ("[flip_flop_with_load_enable_and_reset]" [@tags "runtime5-only"
     |}]
 ;;
 
-let%expect_test ("[sequence]" [@tags "runtime5-only"]) =
+let%expect_test "[sequence]" =
   let t1 = flip_flop () in
   let t2 = flip_flop () in
   let t = sequence t1 t2 in

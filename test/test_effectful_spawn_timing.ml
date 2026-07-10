@@ -2,7 +2,7 @@ open Core
 open Hardcaml
 open Hardcaml_waveterm
 
-module%test [@tags "runtime5-only"] _ = struct
+module%test _ = struct
   module Bit = struct
     type 'a t = { x : 'a } [@@deriving hardcaml]
   end

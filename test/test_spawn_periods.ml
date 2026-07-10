@@ -107,126 +107,124 @@ module Imperative = struct
   ;;
 end
 
-module%test [@tags "runtime5-only"] _ = struct
-  let%expect_test "frequency test" =
-    List.iter [ Functional.frequency_test; Imperative.frequency_test ] ~f:(fun f ->
-      f ~print_waves:true ~count:2;
-      [%expect
-        {|
-        (step_number 0)
-          tick % 4
-          tick % 2
-          tick % 3
-        (step_number 1)
-        (step_number 2)
-          tick % 2
-        (step_number 3)
-          tick % 3
-        (step_number 4)
-          tick % 4
-          tick % 2
-        (step_number 5)
-          tick % 5
-        (step_number 6)
-          tick % 2
-          tick % 3
-        (step_number 7)
-        (step_number 8)
-          tick % 4
-          tick % 2
-        (step_number 9)
-          tick % 3
-        (step_number 10)
-          tick % 5
-          tick % 2
-        (step_number 11)
-        (step_number 12)
-          tick % 4
-          tick % 2
-          tick % 3
-        (step_number 13)
-        (step_number 14)
-          tick % 2
-        (step_number 15)
-          tick % 5
-          tick % 3
-        (step_number 16)
-          tick % 4
-          tick % 2
-        (step_number 17)
-        (step_number 18)
-          tick % 2
-          tick % 3
-        (step_number 19)
-        (step_number 20)
-          tick % 5
-          tick % 4
-          tick % 2
-        (step_number 21)
-          tick % 3
-         ---> 0000
+let%expect_test "frequency test" =
+  List.iter [ Functional.frequency_test; Imperative.frequency_test ] ~f:(fun f ->
+    f ~print_waves:true ~count:2;
+    [%expect
+      {|
+      (step_number 0)
+        tick % 4
+        tick % 2
+        tick % 3
+      (step_number 1)
+      (step_number 2)
+        tick % 2
+      (step_number 3)
+        tick % 3
+      (step_number 4)
+        tick % 4
+        tick % 2
+      (step_number 5)
+        tick % 5
+      (step_number 6)
+        tick % 2
+        tick % 3
+      (step_number 7)
+      (step_number 8)
+        tick % 4
+        tick % 2
+      (step_number 9)
+        tick % 3
+      (step_number 10)
+        tick % 5
+        tick % 2
+      (step_number 11)
+      (step_number 12)
+        tick % 4
+        tick % 2
+        tick % 3
+      (step_number 13)
+      (step_number 14)
+        tick % 2
+      (step_number 15)
+        tick % 5
+        tick % 3
+      (step_number 16)
+        tick % 4
+        tick % 2
+      (step_number 17)
+      (step_number 18)
+        tick % 2
+        tick % 3
+      (step_number 19)
+      (step_number 20)
+        tick % 5
+        tick % 4
+        tick % 2
+      (step_number 21)
+        tick % 3
+       ---> 0000
 
-        (step_number 0)
-          tick % 4
-          tick % 2
-          tick % 3
-        (step_number 1)
-        (step_number 2)
-          tick % 2
-        (step_number 3)
-          tick % 3
-        (step_number 4)
-          tick % 4
-          tick % 2
-        (step_number 5)
-          tick % 5
-        (step_number 6)
-          tick % 2
-          tick % 3
-        (step_number 7)
-        (step_number 8)
-          tick % 4
-          tick % 2
-        (step_number 9)
-          tick % 3
-        (step_number 10)
-          tick % 5
-          tick % 2
-        (step_number 11)
-        (step_number 12)
-          tick % 4
-          tick % 2
-          tick % 3
-        (step_number 13)
-        (step_number 14)
-          tick % 2
-        (step_number 15)
-          tick % 5
-          tick % 3
-        (step_number 16)
-          tick % 4
-          tick % 2
-        (step_number 17)
-        (step_number 18)
-          tick % 2
-          tick % 3
-        (step_number 19)
-        (step_number 20)
-          tick % 5
-          tick % 4
-          tick % 2
-        (step_number 21)
-          tick % 3
-         ---> 0000
+      (step_number 0)
+        tick % 4
+        tick % 2
+        tick % 3
+      (step_number 1)
+      (step_number 2)
+        tick % 2
+      (step_number 3)
+        tick % 3
+      (step_number 4)
+        tick % 4
+        tick % 2
+      (step_number 5)
+        tick % 5
+      (step_number 6)
+        tick % 2
+        tick % 3
+      (step_number 7)
+      (step_number 8)
+        tick % 4
+        tick % 2
+      (step_number 9)
+        tick % 3
+      (step_number 10)
+        tick % 5
+        tick % 2
+      (step_number 11)
+      (step_number 12)
+        tick % 4
+        tick % 2
+        tick % 3
+      (step_number 13)
+      (step_number 14)
+        tick % 2
+      (step_number 15)
+        tick % 5
+        tick % 3
+      (step_number 16)
+        tick % 4
+        tick % 2
+      (step_number 17)
+      (step_number 18)
+        tick % 2
+        tick % 3
+      (step_number 19)
+      (step_number 20)
+        tick % 5
+        tick % 4
+        tick % 2
+      (step_number 21)
+        tick % 3
+       ---> 0000
 
-        ┌Signals────────┐┌Waves──────────────────────────────────────────────┐
-        │clock          ││┌───┐   ┌───┐   ┌───┐   ┌───┐   ┌───┐   ┌───┐   ┌──│
-        │               ││    └───┘   └───┘   └───┘   └───┘   └───┘   └───┘  │
-        │i0_x           ││                                                   │
-        │               ││───────────────────────────────────────────────────│
-        │o              ││                                                   │
-        │               ││───────────────────────────────────────────────────│
-        └───────────────┘└───────────────────────────────────────────────────┘
-        |}])
-  ;;
-end
+      ┌Signals────────┐┌Waves──────────────────────────────────────────────┐
+      │clock          ││┌───┐   ┌───┐   ┌───┐   ┌───┐   ┌───┐   ┌───┐   ┌──│
+      │               ││    └───┘   └───┘   └───┘   └───┘   └───┘   └───┘  │
+      │i0_x           ││                                                   │
+      │               ││───────────────────────────────────────────────────│
+      │o              ││                                                   │
+      │               ││───────────────────────────────────────────────────│
+      └───────────────┘└───────────────────────────────────────────────────┘
+      |}])
+;;

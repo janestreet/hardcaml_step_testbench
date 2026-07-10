@@ -2,22 +2,24 @@
 
 open! Base
 
-module type S = sig
+module type%template [@mode m = (local, global)] S = sig
   type t [@@deriving sexp_of]
 
-  include Equal.S with type t := t
+  include Equal.S [@mode m] with type t := t
 
   val undefined : t
 end
 
 module type Data = sig
-  module type S = S
+  module type%template [@mode m = (local, global)] S = S [@mode m]
 
   type 'd t = (module S with type t = 'd)
 
-  module Bool : S with type t = bool
-  module Int : S with type t = int
-  module String : S with type t = string
-  module Unit : S with type t = unit
-  module Pair (D1 : S) (D2 : S) : S with type t = D1.t * D2.t
+  module Bool : S [@mode local] with type t = bool
+  module Int : S [@mode local] with type t = int
+  module String : S [@mode local] with type t = string
+  module Unit : S [@mode local] with type t = unit
+
+  module%template [@mode m = (local, global)] Pair (D1 : S [@mode m]) (D2 : S [@mode m]) :
+    S [@mode m] with type t = D1.t * D2.t
 end
